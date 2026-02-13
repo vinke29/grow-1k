@@ -1592,9 +1592,10 @@ def build_html(summary, quotes):
     <h2>AI Earnings Tracker</h2>
     <p class="onboard-sub">See how S&P 500 companies are talking about AI across {len(quarters)} quarters of earnings calls.</p>
     <input type="text" id="onboardName" placeholder="Your first name" autocomplete="off" autofocus>
-    <input type="text" id="onboardTicker" list="onboardTickerList" placeholder="A stock ticker you're curious about (e.g. AAPL)" autocomplete="off">
+    <input type="text" id="onboardTicker" list="onboardTickerList" placeholder="Company name or ticker (e.g. Apple or AAPL)" autocomplete="off">
     <datalist id="onboardTickerList">
       {"".join(f'<option value="{esc(c)}">' for c in sorted(companies))}
+      {"".join(f'<option value="{esc(ticker_names.get(c, ""))} ({esc(c)})">' for c in sorted(companies) if c in ticker_names)}
     </datalist>
     <button class="onboard-btn" id="onboardGo" disabled onclick="startLoading()">Let's Go</button>
   </div>
@@ -1620,9 +1621,10 @@ def build_html(summary, quotes):
   </div>
 
   <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
-    <input type="text" id="companySearch" list="companyList" placeholder="Search company ticker (e.g. AAPL)..." oninput="onCompanyFilter()" style="background:var(--bg-input); border:1px solid var(--border); color:var(--text); padding:10px 16px; border-radius:10px; font-size:0.95rem; width:320px;">
+    <input type="text" id="companySearch" list="companyList" placeholder="Company name or ticker (e.g. Apple or AAPL)..." oninput="onCompanyFilter()" style="background:var(--bg-input); border:1px solid var(--border); color:var(--text); padding:10px 16px; border-radius:10px; font-size:0.95rem; width:320px;">
     <datalist id="companyList">
       {"".join(f'<option value="{esc(c)}">' for c in sorted(companies))}
+      {"".join(f'<option value="{esc(ticker_names.get(c, ""))} ({esc(c)})">' for c in sorted(companies) if c in ticker_names)}
     </datalist>
     <button onclick="document.getElementById('companySearch').value=''; onCompanyFilter();" class="theme-toggle" style="margin-top:0; font-size:0.8rem;">Show S&P 500</button>
     <span id="filterLabel" style="color:var(--text-muted); font-size:0.85rem;"></span>
@@ -2257,6 +2259,33 @@ const AI_INTENSITY_DEF = 'AI Intensity = the % of an earnings call\\'s segments 
 function esc(s) {{
   if (!s) return '';
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}}
+
+// Build reverse lookup: lowercase company name -> ticker
+const _nameToTicker = {{}};
+Object.entries(TICKER_NAMES).forEach(([t, name]) => {{
+  _nameToTicker[name.toLowerCase()] = t;
+  // Also index without trailing Inc./Corp./etc.
+  const short = name.replace(/[,.]?\s*(Inc|Corp|Co|Ltd|plc|Company|Holdings|Group|Platforms|International|Bancorp|Technologies|Enterprises|Financial)\.?$/i, '').trim();
+  if (short) _nameToTicker[short.toLowerCase()] = t;
+}});
+
+function resolveTicker(input) {{
+  if (!input) return '';
+  const raw = input.trim();
+  // Check if it's "Name (TICKER)" format from datalist
+  const parenMatch = raw.match(/\(([A-Z]{{1,5}})\)\s*$/);
+  if (parenMatch) return parenMatch[1];
+  // Check if it's already a valid ticker
+  const upper = raw.toUpperCase();
+  if (ALL_SUMMARY.some(r => r.company === upper)) return upper;
+  // Try name lookup
+  const lower = raw.toLowerCase();
+  if (_nameToTicker[lower]) return _nameToTicker[lower];
+  // Fuzzy: find first name that starts with input
+  const match = Object.entries(_nameToTicker).find(([name]) => name.startsWith(lower));
+  if (match) return match[1];
+  return upper; // fallback to treating as ticker
 }}
 
 function showUseCaseQuotes(name, quotes) {{
@@ -2954,7 +2983,8 @@ function selectSector(sector) {{
 }}
 
 function onCompanyFilter() {{
-  const ticker = document.getElementById('companySearch').value.toUpperCase().trim();
+  const rawInput = document.getElementById('companySearch').value.trim();
+  const ticker = resolveTicker(rawInput);
   const valid = ticker && ALL_SUMMARY.some(r => r.company === ticker);
   const filterLabel = document.getElementById('filterLabel');
 
@@ -3052,7 +3082,7 @@ const LOADING_STEPS = [
 
 function startLoading() {{
   const name = onboardName.value.trim();
-  const ticker = onboardTicker.value.toUpperCase().trim();
+  const ticker = resolveTicker(onboardTicker.value);
 
   // Hide onboarding
   document.getElementById('onboarding').classList.add('hidden');
