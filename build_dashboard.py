@@ -932,6 +932,25 @@ def build_html(summary, quotes):
     # Pre-compute aggregate insights as JSON so JS can show them as default
     insights_json = json.dumps([{"title": i["title"], "stat": i["stat"], "detail": i["detail"], "subtitle": i.get("subtitle", "")} for i in insights] if insights else [])
 
+    # Load ticker-to-name mapping
+    ticker_names_path = os.path.join(DIR, "ticker_names.json")
+    ticker_names = {}
+    if os.path.exists(ticker_names_path):
+        with open(ticker_names_path) as f:
+            ticker_names = json.load(f)
+    ticker_names_json = json.dumps(ticker_names)
+
+    # Coverage: count transcripts per sector and per company
+    # Total possible = companies_in_sector * len(quarters)
+    transcripts_by_sector = defaultdict(int)
+    companies_by_sector = defaultdict(set)
+    for r in summary:
+        transcripts_by_sector[r["Sector"]] += 1
+        companies_by_sector[r["Sector"]].add(r["Company"])
+    transcripts_by_company = defaultdict(int)
+    for r in summary:
+        transcripts_by_company[r["Company"]] += 1
+
     # Pre-compute rich sector data for research report view
     all_sectors = sorted(set(r["Sector"] for r in quotes if r["Sector"]))
     sector_report_data = {}
@@ -943,6 +962,7 @@ def build_html(summary, quotes):
         sector_mentions = len(sector_quotes)
         sector_high = len([r for r in sector_quotes if r.get("Significance") == "High"])
         non_vague = [r for r in sector_quotes if r.get("Categories") != "Vague/Buzzword"]
+        vague_ct = sector_mentions - len(non_vague)
         substance_pct = round(sector_high / len(non_vague) * 100) if non_vague else 0
 
         # Quarterly mention trends for narrative
@@ -951,7 +971,6 @@ def build_html(summary, quotes):
             sq_by_q[r["Quarter"]] += 1
         first_sq = sq_by_q.get(first_q, 0)
         latest_sq = sq_by_q.get(latest_q, 0)
-        growth_pct = round((latest_sq - first_sq) / first_sq * 100) if first_sq > 0 else 0
 
         # Exec vs analyst
         exec_ct = len([r for r in sector_quotes if r.get("Role") != "Analyst"])
@@ -964,16 +983,19 @@ def build_html(summary, quotes):
             comp_mentions[r["Company"]] += 1
         top_comps = sorted(comp_mentions.items(), key=lambda x: x[1], reverse=True)[:5]
 
-        # Build narrative paragraph
+        # Coverage
+        sector_transcripts = transcripts_by_sector.get(sector, 0)
+        sector_total_companies = len(companies_by_sector.get(sector, set()))
+        sector_possible = sector_total_companies * len(quarters)
+
+        # Build narrative as bullet points
         driver = "executives proactively bringing it up" if exec_pct > 65 else "analysts asking about it" if exec_pct < 35 else "both executives and analysts"
-        narrative = (
-            f"Across {len(sector_companies_set)} {sector} companies, AI came up in {sector_mentions:,} earnings call segments "
-            f"(each segment is one speaker's turn where AI was discussed). "
-            f"Quarterly volume went from {first_sq} segments in {first_q} to {latest_sq} in {latest_q}. "
-            f"{exec_pct}% of AI discussion comes from {driver}. "
-            f"Of the non-buzzword references, {substance_pct}% cite concrete details "
-            f"(specific products launched, dollar figures, or measurable outcomes) vs. vague statements like 'AI is an opportunity.'"
-        )
+        bullets = [
+            f"AI came up in {sector_mentions:,} earnings call segments across {len(sector_companies_set)} companies (each segment = one speaker's turn discussing AI).",
+            f"Quarterly volume: {first_sq} segments in {first_q} &rarr; {latest_sq} in {latest_q}.",
+            f"Who brings it up: {exec_pct}% from {driver}.",
+            f"Of {sector_mentions:,} total segments, {vague_ct} were buzzword-only (e.g. 'AI is an opportunity'). Of the remaining {len(non_vague):,} substantive segments, {sector_high} ({substance_pct}%) cited concrete details — specific products, dollar figures, or measurable outcomes.",
+        ]
 
         # Use cases: top 10 subcategories (excluding Generic/Vague)
         subcat_data = defaultdict(lambda: {"count": 0, "companies": set(), "quotes": []})
@@ -987,11 +1009,9 @@ def build_html(summary, quotes):
 
         use_cases = []
         for sc_name, sc_info in sorted(subcat_data.items(), key=lambda x: x[1]["count"], reverse=True)[:10]:
-            # Best summary: longest Medium/High summary
             summaries = [r.get("Summary", "") for r in sc_info["quotes"]
                          if r.get("Significance") in ("Medium", "High") and r.get("Summary")]
             best_summary = max(summaries, key=len) if summaries else ""
-            # Top 5 quotes prioritizing High significance
             sorted_quotes = sorted(sc_info["quotes"],
                                    key=lambda r: (0 if r.get("Significance") == "High" else 1, -len(r.get("Summary", ""))))[:5]
             quote_list = []
@@ -1014,11 +1034,11 @@ def build_html(summary, quotes):
             })
 
         sector_report_data[sector] = {
-            "narrative": narrative,
+            "bullets": bullets,
+            "coverage": f"Based on {sector_transcripts:,} earnings call transcripts from {sector_total_companies} companies ({sector_transcripts} of {sector_possible} possible company-quarters).",
             "stats": {
                 "companies": len(sector_companies_set),
                 "mentions": sector_mentions,
-                "highImpact": sector_high,
                 "substancePct": substance_pct,
             },
             "topCompanies": [{"name": c[0], "mentions": c[1]} for c in top_comps],
@@ -1030,23 +1050,23 @@ def build_html(summary, quotes):
     # Aggregate narrative for "All" view
     total_high = len([r for r in quotes if r.get("Significance") == "High"])
     total_non_vague = len([r for r in quotes if r.get("Categories") != "Vague/Buzzword"])
+    total_vague = len(quotes) - total_non_vague
     agg_substance = round(total_high / total_non_vague * 100) if total_non_vague else 0
     agg_exec = len([r for r in quotes if r.get("Role") != "Analyst"])
     agg_analyst = len([r for r in quotes if r.get("Role") == "Analyst"])
     agg_exec_pct = round(agg_exec / (agg_exec + agg_analyst) * 100) if (agg_exec + agg_analyst) > 0 else 0
     agg_first_mentions = mentions_by_q.get(first_q, 0)
     agg_latest_mentions = mentions_by_q.get(latest_q, 0)
-    agg_growth = round((agg_latest_mentions - agg_first_mentions) / agg_first_mentions * 100) if agg_first_mentions > 0 else 0
-    agg_trend = "grew" if agg_growth > 10 else "declined" if agg_growth < -10 else "remained steady"
-    agg_narrative = (
-        f"Across {total_companies} S&P 500 companies, AI came up in {total_mentions:,} earnings call segments "
-        f"(each segment is one speaker's turn where AI was discussed). "
-        f"Quarterly volume went from {agg_first_mentions:,} segments in {first_q} to {agg_latest_mentions:,} in {latest_q}. "
-        f"{agg_exec_pct}% of AI discussion comes from executives (vs. analysts asking about it). "
-        f"Of the non-buzzword references, {agg_substance}% cite concrete details "
-        f"(specific products, dollar figures, or measurable outcomes) vs. vague statements like 'AI is an opportunity.'"
-    )
-    agg_narrative_json = json.dumps(agg_narrative)
+    agg_possible = total_companies * len(quarters)
+    agg_bullets = [
+        f"AI came up in {total_mentions:,} earnings call segments across {total_companies} S&P 500 companies (each segment = one speaker's turn discussing AI).",
+        f"Quarterly volume: {agg_first_mentions:,} segments in {first_q} &rarr; {agg_latest_mentions:,} in {latest_q}.",
+        f"Who brings it up: {agg_exec_pct}% from executives (vs. analysts asking about it).",
+        f"Of {total_mentions:,} total segments, {total_vague:,} were buzzword-only. Of the remaining {total_non_vague:,} substantive segments, {total_high:,} ({agg_substance}%) cited concrete details — specific products, dollar figures, or measurable outcomes.",
+    ]
+    agg_bullets_json = json.dumps(agg_bullets)
+    agg_coverage = f"Based on {total_transcripts:,} earnings call transcripts from {total_companies} companies ({total_transcripts:,} of {agg_possible:,} possible company-quarters)."
+    agg_coverage_json = json.dumps(agg_coverage)
 
     # Build dropdown options HTML
     sector_options_html = "".join(
@@ -1171,6 +1191,27 @@ def build_html(summary, quotes):
     font-size: 0.95rem;
     line-height: 1.7;
     margin-bottom: 16px;
+    list-style: none;
+    padding: 0;
+    margin-top: 0;
+  }}
+  .narrative-text li {{
+    padding: 4px 0 4px 20px;
+    position: relative;
+  }}
+  .narrative-text li::before {{
+    content: '\\2022';
+    position: absolute;
+    left: 4px;
+    color: var(--accent);
+    font-weight: 700;
+  }}
+  .narrative-coverage {{
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
   }}
   .narrative-stats {{
     display: flex;
@@ -1581,8 +1622,9 @@ def build_html(summary, quotes):
       </select>
     </div>
     <div id="narrativeSection" class="insights-narrative">
-      <p id="narrativeText" class="narrative-text"></p>
+      <ul id="narrativeBullets" class="narrative-text"></ul>
       <div id="narrativeStats" class="narrative-stats"></div>
+      <div id="narrativeCoverage" class="narrative-coverage"></div>
     </div>
     <div id="useCaseList" class="use-case-list"></div>
     <div id="quoteDrillDown" class="quote-drill-down" style="display:none;">
@@ -1777,7 +1819,9 @@ const ALL_SUMMARY = {all_summary_json};
 const ALL_QUOTES = {quotes_json};
 const AGG_INSIGHTS = {insights_json};
 const SECTOR_DATA = {sector_report_json};
-const AGG_NARRATIVE = {agg_narrative_json};
+const AGG_BULLETS = {agg_bullets_json};
+const AGG_COVERAGE = {agg_coverage_json};
+const TICKER_NAMES = {ticker_names_json};
 const TOTAL_MENTIONS = {total_mentions};
 const TOTAL_WITH_AI = {total_with_ai};
 const TOTAL_COMPANIES = {total_companies};
@@ -2228,7 +2272,7 @@ function renderUseCases(useCases) {{
   }}
   el.innerHTML = '<h3 class="section-title" style="margin-bottom:8px;">Top AI Use Cases</h3>' +
     useCases.map((uc, i) => {{
-      const comps = (uc.companies || []).slice(0, 8).join(', ');
+      const comps = (uc.companies || []).slice(0, 8).map(t => TICKER_NAMES[t] ? `${{t}} (${{TICKER_NAMES[t]}})` : t).join(', ');
       const moreComps = (uc.companies || []).length > 8 ? ` + ${{uc.companies.length - 8}} more` : '';
       return `<div class="use-case-item" onclick="onUseCaseClick(${{i}})">
         <div class="use-case-rank">#${{i + 1}}</div>
@@ -2273,22 +2317,17 @@ function updateInsights() {{
     if (activeSector && activeSector !== 'All' && SECTOR_DATA[activeSector]) {{
       // Sector view
       const sd = SECTOR_DATA[activeSector];
-      document.getElementById('narrativeText').textContent = sd.narrative;
-      document.getElementById('narrativeStats').innerHTML = `
-        <div class="narrative-stat"><span class="num">${{sd.stats.companies}}</span><span class="lbl">Companies</span></div>
-        <div class="narrative-stat"><span class="num">${{sd.stats.mentions.toLocaleString()}}</span><span class="lbl">Segments</span></div>
-        <div class="narrative-stat"><span class="num">${{sd.stats.substancePct}}%</span><span class="lbl">Concrete</span></div>`;
+      document.getElementById('narrativeBullets').innerHTML = sd.bullets.map(b => `<li>${{b}}</li>`).join('');
+      document.getElementById('narrativeStats').innerHTML = '';
+      document.getElementById('narrativeCoverage').innerHTML = sd.coverage;
       renderUseCases(sd.useCases);
       return;
     }}
 
     // All view — aggregate narrative + top use cases computed client-side
-    document.getElementById('narrativeText').textContent = AGG_NARRATIVE;
-    document.getElementById('narrativeStats').innerHTML = `
-      <div class="narrative-stat"><span class="num">${{TOTAL_MENTIONS.toLocaleString()}}</span><span class="lbl">AI Mentions</span></div>
-      <div class="narrative-stat"><span class="num">${{TOTAL_WITH_AI.toLocaleString()}}</span><span class="lbl">Transcripts w/ AI</span></div>
-      <div class="narrative-stat"><span class="num">${{TOTAL_COMPANIES}}</span><span class="lbl">Companies</span></div>
-      <div class="narrative-stat"><span class="num">${{QUARTERS.length}}</span><span class="lbl">Quarters</span></div>`;
+    document.getElementById('narrativeBullets').innerHTML = AGG_BULLETS.map(b => `<li>${{b}}</li>`).join('');
+    document.getElementById('narrativeStats').innerHTML = '';
+    document.getElementById('narrativeCoverage').innerHTML = AGG_COVERAGE;
 
     // Compute top 12 use cases across all data
     const aggSubcat = {{}};
@@ -2337,13 +2376,10 @@ function updateInsights() {{
   const maxIntensity = Math.max(...rows.map(r => r.intensity), 0);
   const latestRow = rows.filter(r => r.quarter === QUARTERS[QUARTERS.length - 1])[0];
 
-  // Build company narrative
+  // Build company narrative as bullets
+  const companyName = TICKER_NAMES[ticker] || ticker;
   const firstRow = rows.find(r => r.mentions > 0);
   const lastRow = [...aiRows].reverse()[0];
-  let trendText = '';
-  if (firstRow && lastRow && firstRow.quarter !== lastRow.quarter) {{
-    trendText = ` AI Intensity went from ${{firstRow.intensity}}% (${{firstRow.quarter}}) to ${{lastRow.intensity}}% (${{lastRow.quarter}}).`;
-  }}
 
   let execCount = 0, analystCount = 0;
   cQuotes.forEach(q => {{ if (q.role === 'Analyst') analystCount++; else execCount++; }});
@@ -2352,27 +2388,31 @@ function updateInsights() {{
 
   const nonVague = cQuotes.filter(q => q.categories !== 'Vague/Buzzword');
   const highSig = cQuotes.filter(q => q.significance === 'High');
+  const vagueCt = cQuotes.length - nonVague.length;
   const substanceRatio = nonVague.length >= 3 ? Math.round(highSig.length / nonVague.length * 100) : 0;
 
+  const bullets = [];
+  bullets.push(`${{esc(companyName)}} (${{esc(sector)}}) referenced AI in ${{totalMentions}} earnings call segments across ${{aiRows.length}} quarters.`);
+  if (firstRow && lastRow && firstRow.quarter !== lastRow.quarter) {{
+    bullets.push(`AI Intensity: ${{firstRow.intensity}}% (${{firstRow.quarter}}) &rarr; ${{lastRow.intensity}}% (${{lastRow.quarter}}). Peak: ${{maxIntensity}}%.`);
+  }}
   // Sector comparison
-  let sectorCompText = '';
   if (latestRow) {{
     const sectorPeers = ALL_SUMMARY.filter(r => r.sector === sector && r.quarter === latestRow.quarter);
     if (sectorPeers.length > 1) {{
       const sectorAvg = (sectorPeers.reduce((s, r) => s + r.intensity, 0) / sectorPeers.length).toFixed(1);
       const rank = sectorPeers.filter(r => r.intensity > latestRow.intensity).length + 1;
-      sectorCompText = ` Ranked #${{rank}} of ${{sectorPeers.length}} in ${{sector}} by AI Intensity (${{latestRow.intensity}}% vs ${{sectorAvg}}% sector avg).`;
+      bullets.push(`Ranked #${{rank}} of ${{sectorPeers.length}} in ${{esc(sector)}} by AI Intensity (${{latestRow.intensity}}% vs ${{sectorAvg}}% sector avg).`);
     }}
   }}
+  bullets.push(`Who brings it up: ${{execPct}}% from ${{driverText}}.`);
+  if (cQuotes.length > 0) {{
+    bullets.push(`Of ${{cQuotes.length}} total segments, ${{vagueCt}} were buzzword-only. Of the remaining ${{nonVague.length}} substantive segments, ${{highSig.length}} (${{substanceRatio}}%) cited concrete details — specific products, dollar figures, or measurable outcomes.`);
+  }}
 
-  const narrative = `${{ticker}} (${{sector}}) referenced AI in ${{totalMentions}} earnings call segments across ${{aiRows.length}} quarters.${{trendText}} Peak AI Intensity was ${{maxIntensity}}%.${{sectorCompText}} ${{execPct}}% of AI discussion comes from ${{driverText}}. Of the non-buzzword references, ${{substanceRatio}}% cite concrete details (specific products, dollar figures, or measurable outcomes).`;
-
-  document.getElementById('narrativeText').textContent = narrative;
-  document.getElementById('narrativeStats').innerHTML = `
-    <div class="narrative-stat"><span class="num">${{totalMentions}}</span><span class="lbl">Segments</span></div>
-    <div class="narrative-stat"><span class="num">${{aiRows.length}}</span><span class="lbl">Quarters</span></div>
-    <div class="narrative-stat"><span class="num">${{maxIntensity}}%</span><span class="lbl">Peak Intensity</span></div>
-    <div class="narrative-stat"><span class="num">${{substanceRatio}}%</span><span class="lbl">Concrete</span></div>`;
+  document.getElementById('narrativeBullets').innerHTML = bullets.map(b => `<li>${{b}}</li>`).join('');
+  document.getElementById('narrativeStats').innerHTML = '';
+  document.getElementById('narrativeCoverage').innerHTML = `Based on ${{rows.length}} earnings call transcripts (${{rows.length}} of ${{QUARTERS.length}} possible quarters).`;
 
   // Build use cases from company quotes
   const subcatData = {{}};
