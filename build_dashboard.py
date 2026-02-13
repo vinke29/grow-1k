@@ -1037,7 +1037,7 @@ def build_html(summary, quotes):
 
         sector_report_data[sector] = {
             "bullets": bullets,
-            "coverage": f"Based on {sector_transcripts:,} earnings call transcripts from {sector_total_companies} companies ({sector_transcripts} of {sector_possible} possible company-quarters).",
+            "coverage": f"Based on {sector_transcripts:,} earnings call transcripts from {sector_total_companies} companies ({sector_transcripts} of {sector_possible} possible company-quarters, {round(sector_transcripts / sector_possible * 100) if sector_possible else 0}% coverage).",
             "stats": {
                 "companies": len(sector_companies_set),
                 "mentions": sector_mentions,
@@ -1067,7 +1067,7 @@ def build_html(summary, quotes):
         f"Of {total_mentions:,} total segments, {total_vague:,} were buzzword-only. Of the remaining {total_non_vague:,} substantive segments, {total_high:,} ({agg_substance}%) cited concrete details — specific products, dollar figures, or measurable outcomes.",
     ]
     agg_bullets_json = json.dumps(agg_bullets)
-    agg_coverage = f"Based on {total_transcripts:,} earnings call transcripts from {total_companies} companies ({total_transcripts:,} of {agg_possible:,} possible company-quarters)."
+    agg_coverage = f"Based on {total_transcripts:,} earnings call transcripts from {total_companies} companies ({total_transcripts:,} of {agg_possible:,} possible company-quarters, {round(total_transcripts / agg_possible * 100) if agg_possible else 0}% coverage)."
     agg_coverage_json = json.dumps(agg_coverage)
 
     # Build dropdown options HTML
@@ -2439,7 +2439,7 @@ function updateInsights() {{
 
   document.getElementById('narrativeBullets').innerHTML = bullets.map(b => `<li>${{b}}</li>`).join('');
   document.getElementById('narrativeStats').innerHTML = '';
-  document.getElementById('narrativeCoverage').innerHTML = `Based on ${{rows.length}} earnings call transcripts (${{rows.length}} of ${{QUARTERS.length}} possible quarters).`;
+  document.getElementById('narrativeCoverage').innerHTML = `Based on ${{rows.length}} earnings call transcripts (${{rows.length}} of ${{QUARTERS.length}} possible quarters, ${{Math.round(rows.length / QUARTERS.length * 100)}}% coverage).`;
 
   // Build use cases from company quotes
   const subcatData = {{}};
