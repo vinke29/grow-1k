@@ -2234,7 +2234,7 @@ function renderUseCases(useCases) {{
         <div class="use-case-rank">#${{i + 1}}</div>
         <div class="use-case-header">
           <div class="use-case-name">${{esc(uc.name)}}</div>
-          <div class="use-case-count">${{uc.companyCount}} companies · ${{uc.count}} segments</div>
+          <div class="use-case-count">${{uc.companyCount > 1 ? uc.companyCount + ' companies · ' : ''}}${{uc.count}} segment${{uc.count !== 1 ? 's' : ''}}</div>
           ${{uc.description ? `<div class="use-case-desc">${{esc(uc.description)}}</div>` : ''}}
           ${{comps ? `<div class="use-case-companies">${{esc(comps)}}${{moreComps}}</div>` : ''}}
         </div>
@@ -2321,12 +2321,12 @@ function updateInsights() {{
     return;
   }}
 
-  // Company-specific view: hide dropdown/narrative/use-case, show company cards
+  // Company-specific view: use same narrative + use case layout
   selectorEl.style.display = 'none';
-  narrativeEl.style.display = 'none';
-  useCaseEl.style.display = 'none';
-  compStatsEl.style.display = 'grid';
-  compGridEl.style.display = 'grid';
+  narrativeEl.style.display = 'block';
+  useCaseEl.style.display = 'flex';
+  compStatsEl.style.display = 'none';
+  compGridEl.style.display = 'none';
 
   const rows = ALL_SUMMARY.filter(r => r.company === ticker);
   const cQuotes = ALL_QUOTES.filter(r => r.company === ticker);
@@ -2334,164 +2334,73 @@ function updateInsights() {{
   const aiRows = rows.filter(r => r.mentions > 0);
 
   const totalMentions = rows.reduce((s, r) => s + r.mentions, 0);
-  const quartersWithAI = aiRows.length;
   const maxIntensity = Math.max(...rows.map(r => r.intensity), 0);
   const latestRow = rows.filter(r => r.quarter === QUARTERS[QUARTERS.length - 1])[0];
-  const latestIntensity = latestRow ? latestRow.intensity : 0;
 
-  compStatsEl.innerHTML = `
-    <div class="stat-card"><div class="label">Company</div><div class="value">${{ticker}}</div></div>
-    <div class="stat-card"><div class="label">Sector</div><div class="value" style="font-size:1.2rem">${{sector}}</div></div>
-    <div class="stat-card"><div class="label">Total AI Mentions</div><div class="value">${{totalMentions}}</div></div>
-    <div class="stat-card"><div class="label">Peak AI Intensity</div><div class="value">${{maxIntensity}}%</div></div>`;
-
-  const cards = [];
-
-  // Trend
+  // Build company narrative
   const firstRow = rows.find(r => r.mentions > 0);
   const lastRow = [...aiRows].reverse()[0];
+  let trendText = '';
   if (firstRow && lastRow && firstRow.quarter !== lastRow.quarter) {{
-    const delta = (lastRow.intensity - firstRow.intensity).toFixed(1);
-    const dir = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
-    cards.push(makeCard('AI Intensity Trend',
-      `${{delta > 0 ? '+' : ''}}${{delta}}%`,
-      `AI Intensity went from ${{firstRow.intensity}}% (${{firstRow.quarter}}) to ${{lastRow.intensity}}% (${{lastRow.quarter}}). The overall trend is ${{dir}}.`,
-      AI_INTENSITY_DEF));
+    trendText = ` AI Intensity went from ${{firstRow.intensity}}% (${{firstRow.quarter}}) to ${{lastRow.intensity}}% (${{lastRow.quarter}}).`;
   }}
 
-  // Top use case
-  const catCounts = {{}};
-  cQuotes.forEach(q => {{
-    q.categories.split(', ').forEach(c => {{
-      if (c && c !== 'Uncategorized' && c !== 'Vague/Buzzword') catCounts[c] = (catCounts[c] || 0) + 1;
-    }});
-  }});
-  const catEntries = Object.entries(catCounts).sort((a, b) => b[1] - a[1]);
-  if (catEntries.length > 0) {{
-    const topCat = catEntries[0];
-    const totalCats = Object.values(catCounts).reduce((a, b) => a + b, 0);
-    const pct = Math.round(topCat[1] / totalCats * 100);
-    const others = catEntries.slice(1, 3).map(c => c[0]).join(', ');
-    cards.push(makeCard('Primary AI Use Case',
-      topCat[0],
-      `${{pct}}% of ${{ticker}}'s AI mentions are about ${{topCat[0]}}.${{others ? ' Also discusses: ' + others + '.' : ''}}`));
-  }}
-
-  // Who drives it
   let execCount = 0, analystCount = 0;
-  cQuotes.forEach(q => {{
-    if (q.role === 'Analyst') analystCount++;
-    else execCount++;
-  }});
-  if (execCount + analystCount > 0) {{
-    const execPct = Math.round(execCount / (execCount + analystCount) * 100);
-    const driver = execPct > 65 ? 'Management is proactively pushing the AI narrative.' :
-                   execPct < 35 ? 'Analysts are driving most of the AI discussion — management isn\\'t volunteering it.' :
-                   'Both management and analysts are engaged on AI.';
-    cards.push(makeCard('Who Talks About AI',
-      `${{execPct}}% Executive`,
-      `${{execCount}} executive segments vs ${{analystCount}} analyst segments mention AI. ${{driver}}`));
-  }}
+  cQuotes.forEach(q => {{ if (q.role === 'Analyst') analystCount++; else execCount++; }});
+  const execPct = (execCount + analystCount) > 0 ? Math.round(execCount / (execCount + analystCount) * 100) : 0;
+  const driverText = execPct > 65 ? 'executives proactively bringing it up' : execPct < 35 ? 'analysts asking about it' : 'both executives and analysts';
 
-  // Sector comparison
-  const sectorPeers = ALL_SUMMARY.filter(r => r.sector === sector && r.quarter === (latestRow?.quarter || ''));
-  if (sectorPeers.length > 1 && latestRow) {{
-    const sectorAvg = (sectorPeers.reduce((s, r) => s + r.intensity, 0) / sectorPeers.length).toFixed(1);
-    const rank = sectorPeers.filter(r => r.intensity > latestRow.intensity).length + 1;
-    const comparison = latestRow.intensity > parseFloat(sectorAvg) ? 'above' : latestRow.intensity < parseFloat(sectorAvg) ? 'below' : 'at';
-    cards.push(makeCard('vs Sector Average',
-      `#${{rank}} of ${{sectorPeers.length}}`,
-      `${{ticker}}'s AI Intensity (${{latestRow.intensity}}%) is ${{comparison}} the ${{sector}} average of ${{sectorAvg}}%. Ranked #${{rank}} out of ${{sectorPeers.length}} companies in ${{sector}}.`));
-  }}
-
-  // Best quote
-  const bestQuoteRow = aiRows.filter(r => r.quote).sort((a, b) => b.intensity - a.intensity)[0];
-  if (bestQuoteRow) {{
-    const truncQuote = bestQuoteRow.quote.length > 250 ? bestQuoteRow.quote.substring(0, 250) + '...' : bestQuoteRow.quote;
-    cards.push(makeCard(`Notable Quote (${{bestQuoteRow.quarter}})`,
-      bestQuoteRow.speaker || ticker,
-      `"${{esc(truncQuote)}}"`));
-  }}
-
-  // Quarters with zero AI
-  const zeroQuarters = rows.filter(r => r.mentions === 0).map(r => r.quarter);
-  if (zeroQuarters.length > 0 && aiRows.length > 0) {{
-    cards.push(makeCard('Quarters with No AI Mention',
-      `${{zeroQuarters.length}} of ${{rows.length}}`,
-      `${{ticker}} didn't mention AI at all in: ${{zeroQuarters.join(', ')}}. ${{zeroQuarters.length > rows.length / 2 ? 'AI is not yet a consistent theme.' : 'AI is becoming a regular topic.'}}`));
-  }}
-
-  // What they use AI for (subcategories) — clickable to expand quotes
-  const subcatCounts = {{}};
-  const subcatQuotes = {{}};
-  cQuotes.forEach(q => {{
-    const sc = q.subcategory;
-    if (sc && sc !== 'Generic AI Mention') {{
-      subcatCounts[sc] = (subcatCounts[sc] || 0) + 1;
-      if (!subcatQuotes[sc]) subcatQuotes[sc] = [];
-      subcatQuotes[sc].push(q);
-    }}
-  }});
-  const subcatEntries = Object.entries(subcatCounts).sort((a, b) => b[1] - a[1]);
-  if (subcatEntries.length > 0) {{
-    const topSubs = subcatEntries.slice(0, 8);
-    const subsHtml = topSubs.map(([sc, n], idx) => {{
-      const quotes = subcatQuotes[sc] || [];
-      const quotesHtml = quotes.map(q => {{
-        const sigColor = q.significance === 'High' ? 'var(--accent2)' : q.significance === 'Medium' ? 'var(--text-secondary)' : 'var(--text-muted)';
-        return `<div style="padding:8px 0; border-bottom:1px solid var(--border);">` +
-          `<div style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:4px;">${{esc(q.summary) || '—'}}</div>` +
-          `<div style="font-size:0.75rem; color:var(--text-muted); font-style:italic;">"${{esc(q.quote).substring(0, 200)}}${{q.quote && q.quote.length > 200 ? '...' : ''}}"</div>` +
-          `<div style="font-size:0.7rem; color:var(--text-muted); margin-top:3px;">${{q.quarter}} · <span style="color:${{sigColor}}; font-weight:600;">${{q.significance}}</span></div>` +
-          `</div>`;
-      }}).join('');
-      return `<div style="margin-bottom:2px;">` +
-        `<div onclick="document.getElementById('subcat-${{idx}}').style.display = document.getElementById('subcat-${{idx}}').style.display === 'none' ? 'block' : 'none'" style="cursor:pointer; padding:5px 0; font-size:0.85rem; display:flex; align-items:center; gap:6px;">` +
-        `<span style="font-size:0.7rem; color:var(--text-muted); transition:transform 0.2s;" id="arrow-${{idx}}">&#9654;</span>` +
-        `<strong style="color:var(--accent);">${{esc(sc)}}</strong> <span style="color:var(--text-muted);">(${{n}})</span>` +
-        `</div>` +
-        `<div id="subcat-${{idx}}" style="display:none; margin-left:16px; margin-bottom:8px;">` +
-        quotesHtml +
-        `</div></div>`;
-    }}).join('');
-    cards.push(makeCard('What They Use AI For',
-      `${{subcatEntries.length}} use cases`,
-      subsHtml + `<p style="color:var(--text-muted); font-size:0.72rem; margin-top:8px;">Click any use case to see the underlying quotes.</p>`));
-  }}
-
-  // Notable AI Moves (company-specific)
-  const highSigQuotes = cQuotes.filter(q => q.significance === 'High' && q.summary);
-  if (highSigQuotes.length > 0) {{
-    const topMoves = highSigQuotes.slice(0, 3);
-    const movesHtml = topMoves.map(q => `<span style="display:block; margin-bottom:6px;">• ${{esc(q.summary)}} <span style="color:var(--text-muted); font-size:0.75rem;">(${{q.quarter}})</span></span>`).join('');
-    cards.push(makeCard('Notable AI Moves',
-      `${{highSigQuotes.length}} High-Impact`,
-      movesHtml));
-  }}
-
-  // Substance ratio (company-specific)
   const nonVague = cQuotes.filter(q => q.categories !== 'Vague/Buzzword');
   const highSig = cQuotes.filter(q => q.significance === 'High');
-  if (nonVague.length >= 3) {{
-    const substanceRatio = Math.round(highSig.length / nonVague.length * 100);
-    const sectorTickers = [...new Set(ALL_QUOTES.filter(q => q.sector === sector).map(q => q.company))];
-    let sectorRatios = sectorTickers.map(t => {{
-      const tq = ALL_QUOTES.filter(q => q.company === t);
-      const tNonVague = tq.filter(q => q.categories !== 'Vague/Buzzword');
-      const tHigh = tq.filter(q => q.significance === 'High');
-      return tNonVague.length >= 3 ? {{ ticker: t, ratio: Math.round(tHigh.length / tNonVague.length * 100) }} : null;
-    }}).filter(Boolean);
-    sectorRatios.sort((a, b) => b.ratio - a.ratio);
-    const rank = sectorRatios.findIndex(r => r.ticker === ticker) + 1;
-    const verdict = substanceRatio >= 40 ? 'Highly substantive — specific numbers and launches.' :
-                    substanceRatio >= 20 ? 'Moderate substance — concrete but room for more specifics.' :
-                    'Mostly surface-level AI discussion.';
-    cards.push(makeCard('Substance Score',
-      `${{substanceRatio}}%`,
-      `${{highSig.length}} of ${{nonVague.length}} non-vague AI mentions are high-impact. ${{rank > 0 ? `Ranked #${{rank}} of ${{sectorRatios.length}} in ${{sector}}.` : ''}} ${{verdict}}`));
+  const substanceRatio = nonVague.length >= 3 ? Math.round(highSig.length / nonVague.length * 100) : 0;
+
+  // Sector comparison
+  let sectorCompText = '';
+  if (latestRow) {{
+    const sectorPeers = ALL_SUMMARY.filter(r => r.sector === sector && r.quarter === latestRow.quarter);
+    if (sectorPeers.length > 1) {{
+      const sectorAvg = (sectorPeers.reduce((s, r) => s + r.intensity, 0) / sectorPeers.length).toFixed(1);
+      const rank = sectorPeers.filter(r => r.intensity > latestRow.intensity).length + 1;
+      sectorCompText = ` Ranked #${{rank}} of ${{sectorPeers.length}} in ${{sector}} by AI Intensity (${{latestRow.intensity}}% vs ${{sectorAvg}}% sector avg).`;
+    }}
   }}
 
-  compGridEl.innerHTML = cards.join('');
+  const narrative = `${{ticker}} (${{sector}}) referenced AI in ${{totalMentions}} earnings call segments across ${{aiRows.length}} quarters.${{trendText}} Peak AI Intensity was ${{maxIntensity}}%.${{sectorCompText}} ${{execPct}}% of AI discussion comes from ${{driverText}}. Of the non-buzzword references, ${{substanceRatio}}% cite concrete details (specific products, dollar figures, or measurable outcomes).`;
+
+  document.getElementById('narrativeText').textContent = narrative;
+  document.getElementById('narrativeStats').innerHTML = `
+    <div class="narrative-stat"><span class="num">${{totalMentions}}</span><span class="lbl">Segments</span></div>
+    <div class="narrative-stat"><span class="num">${{aiRows.length}}</span><span class="lbl">Quarters</span></div>
+    <div class="narrative-stat"><span class="num">${{maxIntensity}}%</span><span class="lbl">Peak Intensity</span></div>
+    <div class="narrative-stat"><span class="num">${{substanceRatio}}%</span><span class="lbl">Concrete</span></div>`;
+
+  // Build use cases from company quotes
+  const subcatData = {{}};
+  cQuotes.forEach(q => {{
+    const sc = q.subcategory;
+    if (sc && sc !== 'Generic AI Mention' && q.categories !== 'Vague/Buzzword') {{
+      if (!subcatData[sc]) subcatData[sc] = {{ count: 0, quotes: [] }};
+      subcatData[sc].count++;
+      subcatData[sc].quotes.push({{
+        company: q.company, quarter: q.quarter,
+        quote: (q.quote || '').substring(0, 400),
+        summary: q.summary || '', role: q.role || '',
+        significance: q.significance || 'Medium'
+      }});
+    }}
+  }});
+  const companyUseCases = Object.entries(subcatData)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 10)
+    .map(([name, d]) => ({{
+      name,
+      count: d.count,
+      companyCount: 1,
+      companies: [ticker],
+      description: d.quotes.find(q => q.summary)?.summary || '',
+      quotes: d.quotes.sort((a, b) => (a.significance === 'High' ? 0 : 1) - (b.significance === 'High' ? 0 : 1)).slice(0, 5),
+    }}));
+  renderUseCases(companyUseCases);
 
   // Timeline chart
   timelineEl.style.display = 'block';
