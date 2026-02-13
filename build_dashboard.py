@@ -965,14 +965,14 @@ def build_html(summary, quotes):
         top_comps = sorted(comp_mentions.items(), key=lambda x: x[1], reverse=True)[:5]
 
         # Build narrative paragraph
-        trend_word = "grew" if growth_pct > 10 else "declined" if growth_pct < -10 else "remained steady"
-        trend_detail = f" ({growth_pct:+}%)" if growth_pct != 0 else ""
-        driver = "executives proactively driving the conversation" if exec_pct > 65 else "analysts pushing the topic" if exec_pct < 35 else "both executives and analysts engaged"
+        driver = "executives proactively bringing it up" if exec_pct > 65 else "analysts asking about it" if exec_pct < 35 else "both executives and analysts"
         narrative = (
-            f"{sector} had {sector_mentions:,} AI mentions across {len(sector_companies_set)} companies. "
-            f"From {first_q} to {latest_q}, mention volume {trend_word}{trend_detail}. "
-            f"AI discussion is primarily led by {driver} ({exec_pct}% executive). "
-            f"{substance_pct}% of substantive mentions are high-impact."
+            f"Across {len(sector_companies_set)} {sector} companies, AI came up in {sector_mentions:,} earnings call segments "
+            f"(each segment is one speaker's turn where AI was discussed). "
+            f"Quarterly volume went from {first_sq} segments in {first_q} to {latest_sq} in {latest_q}. "
+            f"{exec_pct}% of AI discussion comes from {driver}. "
+            f"Of the non-buzzword references, {substance_pct}% cite concrete details "
+            f"(specific products launched, dollar figures, or measurable outcomes) vs. vague statements like 'AI is an opportunity.'"
         )
 
         # Use cases: top 10 subcategories (excluding Generic/Vague)
@@ -1039,10 +1039,12 @@ def build_html(summary, quotes):
     agg_growth = round((agg_latest_mentions - agg_first_mentions) / agg_first_mentions * 100) if agg_first_mentions > 0 else 0
     agg_trend = "grew" if agg_growth > 10 else "declined" if agg_growth < -10 else "remained steady"
     agg_narrative = (
-        f"Across {total_companies} S&P 500 companies, AI was mentioned {total_mentions:,} times in earnings calls. "
-        f"From {first_q} to {latest_q}, total mentions {agg_trend} ({agg_growth:+}%). "
-        f"{agg_exec_pct}% of AI discussion is executive-driven. "
-        f"{agg_substance}% of substantive mentions are rated high-impact."
+        f"Across {total_companies} S&P 500 companies, AI came up in {total_mentions:,} earnings call segments "
+        f"(each segment is one speaker's turn where AI was discussed). "
+        f"Quarterly volume went from {agg_first_mentions:,} segments in {first_q} to {agg_latest_mentions:,} in {latest_q}. "
+        f"{agg_exec_pct}% of AI discussion comes from executives (vs. analysts asking about it). "
+        f"Of the non-buzzword references, {agg_substance}% cite concrete details "
+        f"(specific products, dollar figures, or measurable outcomes) vs. vague statements like 'AI is an opportunity.'"
     )
     agg_narrative_json = json.dumps(agg_narrative)
 
@@ -2215,7 +2217,10 @@ function closeQuoteDrillDown() {{
   document.getElementById('quoteDrillDown').style.display = 'none';
 }}
 
+let _currentUseCases = [];
+
 function renderUseCases(useCases) {{
+  _currentUseCases = useCases || [];
   const el = document.getElementById('useCaseList');
   if (!useCases || useCases.length === 0) {{
     el.innerHTML = '<p style="color:var(--text-muted); padding:16px;">No specific use cases found.</p>';
@@ -2225,16 +2230,21 @@ function renderUseCases(useCases) {{
     useCases.map((uc, i) => {{
       const comps = (uc.companies || []).slice(0, 8).join(', ');
       const moreComps = (uc.companies || []).length > 8 ? ` + ${{uc.companies.length - 8}} more` : '';
-      return `<div class="use-case-item" onclick='showUseCaseQuotes(${{JSON.stringify(uc.name)}}, ${{JSON.stringify(uc.quotes)}})'>
+      return `<div class="use-case-item" onclick="onUseCaseClick(${{i}})">
         <div class="use-case-rank">#${{i + 1}}</div>
         <div class="use-case-header">
           <div class="use-case-name">${{esc(uc.name)}}</div>
-          <div class="use-case-count">${{uc.companyCount}} companies · ${{uc.count}} mentions</div>
+          <div class="use-case-count">${{uc.companyCount}} companies · ${{uc.count}} segments</div>
           ${{uc.description ? `<div class="use-case-desc">${{esc(uc.description)}}</div>` : ''}}
           ${{comps ? `<div class="use-case-companies">${{esc(comps)}}${{moreComps}}</div>` : ''}}
         </div>
       </div>`;
     }}).join('');
+}}
+
+function onUseCaseClick(idx) {{
+  const uc = _currentUseCases[idx];
+  if (uc) showUseCaseQuotes(uc.name, uc.quotes);
 }}
 
 function updateInsights() {{
@@ -2266,9 +2276,8 @@ function updateInsights() {{
       document.getElementById('narrativeText').textContent = sd.narrative;
       document.getElementById('narrativeStats').innerHTML = `
         <div class="narrative-stat"><span class="num">${{sd.stats.companies}}</span><span class="lbl">Companies</span></div>
-        <div class="narrative-stat"><span class="num">${{sd.stats.mentions.toLocaleString()}}</span><span class="lbl">AI Mentions</span></div>
-        <div class="narrative-stat"><span class="num">${{sd.stats.highImpact}}</span><span class="lbl">High-Impact</span></div>
-        <div class="narrative-stat"><span class="num">${{sd.stats.substancePct}}%</span><span class="lbl">Substance</span></div>`;
+        <div class="narrative-stat"><span class="num">${{sd.stats.mentions.toLocaleString()}}</span><span class="lbl">Segments</span></div>
+        <div class="narrative-stat"><span class="num">${{sd.stats.substancePct}}%</span><span class="lbl">Concrete</span></div>`;
       renderUseCases(sd.useCases);
       return;
     }}
