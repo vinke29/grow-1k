@@ -1,0 +1,2014 @@
+[
+  {
+    "symbol": "MMM",
+    "sector": "Industrial Conglomerates"
+  },
+  {
+    "symbol": "AOS",
+    "sector": "Building Products"
+  },
+  {
+    "symbol": "ABT",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "ABBV",
+    "sector": "Biotechnology"
+  },
+  {
+    "symbol": "ACN",
+    "sector": "IT Consulting & Other Services"
+  },
+  {
+    "symbol": "ADBE",
+    "sector": "Application Software"
+  },
+  {
+    "symbol": "AMD",
+    "sector": "Semiconductors"
+  },
+  {
+    "symbol": "AES",
+    "sector": "Independent Power Producers & Energy Traders"
+  },
+  {
+    "symbol": "AFL",
+    "sector": "Life & Health Insurance"
+  },
+  {
+    "symbol": "A",
+    "sector": "Life Sciences Tools & Services"
+  },
+  {
+    "symbol": "APD",
+    "sector": "Industrial Gases"
+  },
+  {
+    "symbol": "ABNB",
+    "sector": "Hotels, Resorts & Cruise Lines"
+  },
+  {
+    "symbol": "AKAM",
+    "sector": "Internet Services & Infrastructure"
+  },
+  {
+    "symbol": "ALB",
+    "sector": "Specialty Chemicals"
+  },
+  {
+    "symbol": "ARE",
+    "sector": "Office REITs"
+  },
+  {
+    "symbol": "ALGN",
+    "sector": "Health Care Supplies"
+  },
+  {
+    "symbol": "ALLE",
+    "sector": "Building Products"
+  },
+  {
+    "symbol": "LNT",
+    "sector": "Electric Utilities"
+  },
+  {
+    "symbol": "ALL",
+    "sector": "Property & Casualty Insurance"
+  },
+  {
+    "symbol": "GOOGL",
+    "sector": "Interactive Media & Services"
+  },
+  {
+    "symbol": "GOOG",
+    "sector": "Interactive Media & Services"
+  },
+  {
+    "symbol": "MO",
+    "sector": "Tobacco"
+  },
+  {
+    "symbol": "AMZN",
+    "sector": "Broadline Retail"
+  },
+  {
+    "symbol": "AMCR",
+    "sector": "Paper & Plastic Packaging Products & Materials"
+  },
+  {
+    "symbol": "AEE",
+    "sector": "Multi-Utilities"
+  },
+  {
+    "symbol": "AEP",
+    "sector": "Electric Utilities"
+  },
+  {
+    "symbol": "AXP",
+    "sector": "Consumer Finance"
+  },
+  {
+    "symbol": "AIG",
+    "sector": "Multi-line Insurance"
+  },
+  {
+    "symbol": "AMT",
+    "sector": "Telecom Tower REITs"
+  },
+  {
+    "symbol": "AWK",
+    "sector": "Water Utilities"
+  },
+  {
+    "symbol": "AMP",
+    "sector": "Asset Management & Custody Banks"
+  },
+  {
+    "symbol": "AME",
+    "sector": "Electrical Components & Equipment"
+  },
+  {
+    "symbol": "AMGN",
+    "sector": "Biotechnology"
+  },
+  {
+    "symbol": "APH",
+    "sector": "Electronic Components"
+  },
+  {
+    "symbol": "ADI",
+    "sector": "Semiconductors"
+  },
+  {
+    "symbol": "AON",
+    "sector": "Insurance Brokers"
+  },
+  {
+    "symbol": "APA",
+    "sector": "Oil & Gas Exploration & Production"
+  },
+  {
+    "symbol": "APO",
+    "sector": "Asset Management & Custody Banks"
+  },
+  {
+    "symbol": "AAPL",
+    "sector": "Technology Hardware, Storage & Peripherals"
+  },
+  {
+    "symbol": "AMAT",
+    "sector": "Semiconductor Materials & Equipment"
+  },
+  {
+    "symbol": "APP",
+    "sector": "Application Software"
+  },
+  {
+    "symbol": "APTV",
+    "sector": "Automotive Parts & Equipment"
+  },
+  {
+    "symbol": "ACGL",
+    "sector": "Property & Casualty Insurance"
+  },
+  {
+    "symbol": "ADM",
+    "sector": "Agricultural Products & Services"
+  },
+  {
+    "symbol": "ARES",
+    "sector": "Asset Management & Custody Banks"
+  },
+  {
+    "symbol": "ANET",
+    "sector": "Communications Equipment"
+  },
+  {
+    "symbol": "AJG",
+    "sector": "Insurance Brokers"
+  },
+  {
+    "symbol": "AIZ",
+    "sector": "Multi-line Insurance"
+  },
+  {
+    "symbol": "T",
+    "sector": "Integrated Telecommunication Services"
+  },
+  {
+    "symbol": "ATO",
+    "sector": "Gas Utilities"
+  },
+  {
+    "symbol": "ADSK",
+    "sector": "Application Software"
+  },
+  {
+    "symbol": "ADP",
+    "sector": "Human Resource & Employment Services"
+  },
+  {
+    "symbol": "AZO",
+    "sector": "Automotive Retail"
+  },
+  {
+    "symbol": "AVB",
+    "sector": "Multi-Family Residential REITs"
+  },
+  {
+    "symbol": "AVY",
+    "sector": "Paper & Plastic Packaging Products & Materials"
+  },
+  {
+    "symbol": "AXON",
+    "sector": "Aerospace & Defense"
+  },
+  {
+    "symbol": "BKR",
+    "sector": "Oil & Gas Equipment & Services"
+  },
+  {
+    "symbol": "BALL",
+    "sector": "Metal, Glass & Plastic Containers"
+  },
+  {
+    "symbol": "BAC",
+    "sector": "Diversified Banks"
+  },
+  {
+    "symbol": "BAX",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "BDX",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "BRK.B",
+    "sector": "Multi-Sector Holdings"
+  },
+  {
+    "symbol": "BBY",
+    "sector": "Computer & Electronics Retail"
+  },
+  {
+    "symbol": "TECH",
+    "sector": "Life Sciences Tools & Services"
+  },
+  {
+    "symbol": "BIIB",
+    "sector": "Biotechnology"
+  },
+  {
+    "symbol": "BLK",
+    "sector": "Asset Management & Custody Banks"
+  },
+  {
+    "symbol": "BX",
+    "sector": "Asset Management & Custody Banks"
+  },
+  {
+    "symbol": "XYZ",
+    "sector": "Transaction & Payment Processing Services"
+  },
+  {
+    "symbol": "BK",
+    "sector": "Asset Management & Custody Banks"
+  },
+  {
+    "symbol": "BA",
+    "sector": "Aerospace & Defense"
+  },
+  {
+    "symbol": "BKNG",
+    "sector": "Hotels, Resorts & Cruise Lines"
+  },
+  {
+    "symbol": "BSX",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "BMY",
+    "sector": "Pharmaceuticals"
+  },
+  {
+    "symbol": "AVGO",
+    "sector": "Semiconductors"
+  },
+  {
+    "symbol": "BR",
+    "sector": "Data Processing & Outsourced Services"
+  },
+  {
+    "symbol": "BRO",
+    "sector": "Insurance Brokers"
+  },
+  {
+    "symbol": "BF.B",
+    "sector": "Distillers & Vintners"
+  },
+  {
+    "symbol": "BLDR",
+    "sector": "Building Products"
+  },
+  {
+    "symbol": "BG",
+    "sector": "Agricultural Products & Services"
+  },
+  {
+    "symbol": "BXP",
+    "sector": "Office REITs"
+  },
+  {
+    "symbol": "CHRW",
+    "sector": "Air Freight & Logistics"
+  },
+  {
+    "symbol": "CDNS",
+    "sector": "Application Software"
+  },
+  {
+    "symbol": "CPT",
+    "sector": "Multi-Family Residential REITs"
+  },
+  {
+    "symbol": "CPB",
+    "sector": "Packaged Foods & Meats"
+  },
+  {
+    "symbol": "COF",
+    "sector": "Consumer Finance"
+  },
+  {
+    "symbol": "CAH",
+    "sector": "Health Care Distributors"
+  },
+  {
+    "symbol": "CCL",
+    "sector": "Hotels, Resorts & Cruise Lines"
+  },
+  {
+    "symbol": "CARR",
+    "sector": "Building Products"
+  },
+  {
+    "symbol": "CVNA",
+    "sector": "Automotive Retail"
+  },
+  {
+    "symbol": "CAT",
+    "sector": "Construction Machinery & Heavy Transportation Equipment"
+  },
+  {
+    "symbol": "CBOE",
+    "sector": "Financial Exchanges & Data"
+  },
+  {
+    "symbol": "CBRE",
+    "sector": "Real Estate Services"
+  },
+  {
+    "symbol": "CDW",
+    "sector": "Technology Distributors"
+  },
+  {
+    "symbol": "COR",
+    "sector": "Health Care Distributors"
+  },
+  {
+    "symbol": "CNC",
+    "sector": "Managed Health Care"
+  },
+  {
+    "symbol": "CNP",
+    "sector": "Multi-Utilities"
+  },
+  {
+    "symbol": "CF",
+    "sector": "Fertilizers & Agricultural Chemicals"
+  },
+  {
+    "symbol": "CRL",
+    "sector": "Life Sciences Tools & Services"
+  },
+  {
+    "symbol": "SCHW",
+    "sector": "Investment Banking & Brokerage"
+  },
+  {
+    "symbol": "CHTR",
+    "sector": "Cable & Satellite"
+  },
+  {
+    "symbol": "CVX",
+    "sector": "Integrated Oil & Gas"
+  },
+  {
+    "symbol": "CMG",
+    "sector": "Restaurants"
+  },
+  {
+    "symbol": "CB",
+    "sector": "Property & Casualty Insurance"
+  },
+  {
+    "symbol": "CHD",
+    "sector": "Household Products"
+  },
+  {
+    "symbol": "CIEN",
+    "sector": "Communications Equipment"
+  },
+  {
+    "symbol": "CI",
+    "sector": "Health Care Services"
+  },
+  {
+    "symbol": "CINF",
+    "sector": "Property & Casualty Insurance"
+  },
+  {
+    "symbol": "CTAS",
+    "sector": "Diversified Support Services"
+  },
+  {
+    "symbol": "CSCO",
+    "sector": "Communications Equipment"
+  },
+  {
+    "symbol": "C",
+    "sector": "Diversified Banks"
+  },
+  {
+    "symbol": "CFG",
+    "sector": "Regional Banks"
+  },
+  {
+    "symbol": "CLX",
+    "sector": "Household Products"
+  },
+  {
+    "symbol": "CME",
+    "sector": "Financial Exchanges & Data"
+  },
+  {
+    "symbol": "CMS",
+    "sector": "Multi-Utilities"
+  },
+  {
+    "symbol": "KO",
+    "sector": "Soft Drinks & Non-alcoholic Beverages"
+  },
+  {
+    "symbol": "CTSH",
+    "sector": "IT Consulting & Other Services"
+  },
+  {
+    "symbol": "COIN",
+    "sector": "Financial Exchanges & Data"
+  },
+  {
+    "symbol": "CL",
+    "sector": "Household Products"
+  },
+  {
+    "symbol": "CMCSA",
+    "sector": "Cable & Satellite"
+  },
+  {
+    "symbol": "FIX",
+    "sector": "Construction & Engineering"
+  },
+  {
+    "symbol": "CAG",
+    "sector": "Packaged Foods & Meats"
+  },
+  {
+    "symbol": "COP",
+    "sector": "Oil & Gas Exploration & Production"
+  },
+  {
+    "symbol": "ED",
+    "sector": "Multi-Utilities"
+  },
+  {
+    "symbol": "STZ",
+    "sector": "Distillers & Vintners"
+  },
+  {
+    "symbol": "CEG",
+    "sector": "Electric Utilities"
+  },
+  {
+    "symbol": "COO",
+    "sector": "Health Care Supplies"
+  },
+  {
+    "symbol": "CPRT",
+    "sector": "Diversified Support Services"
+  },
+  {
+    "symbol": "GLW",
+    "sector": "Electronic Components"
+  },
+  {
+    "symbol": "CPAY",
+    "sector": "Transaction & Payment Processing Services"
+  },
+  {
+    "symbol": "CTVA",
+    "sector": "Fertilizers & Agricultural Chemicals"
+  },
+  {
+    "symbol": "CSGP",
+    "sector": "Real Estate Services"
+  },
+  {
+    "symbol": "COST",
+    "sector": "Consumer Staples Merchandise Retail"
+  },
+  {
+    "symbol": "CTRA",
+    "sector": "Oil & Gas Exploration & Production"
+  },
+  {
+    "symbol": "CRH",
+    "sector": "Construction Materials"
+  },
+  {
+    "symbol": "CRWD",
+    "sector": "Systems Software"
+  },
+  {
+    "symbol": "CCI",
+    "sector": "Telecom Tower REITs"
+  },
+  {
+    "symbol": "CSX",
+    "sector": "Rail Transportation"
+  },
+  {
+    "symbol": "CMI",
+    "sector": "Construction Machinery & Heavy Transportation Equipment"
+  },
+  {
+    "symbol": "CVS",
+    "sector": "Health Care Services"
+  },
+  {
+    "symbol": "DHR",
+    "sector": "Life Sciences Tools & Services"
+  },
+  {
+    "symbol": "DRI",
+    "sector": "Restaurants"
+  },
+  {
+    "symbol": "DDOG",
+    "sector": "Application Software"
+  },
+  {
+    "symbol": "DVA",
+    "sector": "Health Care Services"
+  },
+  {
+    "symbol": "DECK",
+    "sector": "Footwear"
+  },
+  {
+    "symbol": "DE",
+    "sector": "Agricultural & Farm Machinery"
+  },
+  {
+    "symbol": "DELL",
+    "sector": "Technology Hardware, Storage & Peripherals"
+  },
+  {
+    "symbol": "DAL",
+    "sector": "Passenger Airlines"
+  },
+  {
+    "symbol": "DVN",
+    "sector": "Oil & Gas Exploration & Production"
+  },
+  {
+    "symbol": "DXCM",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "FANG",
+    "sector": "Oil & Gas Exploration & Production"
+  },
+  {
+    "symbol": "DLR",
+    "sector": "Data Center REITs"
+  },
+  {
+    "symbol": "DG",
+    "sector": "Consumer Staples Merchandise Retail"
+  },
+  {
+    "symbol": "DLTR",
+    "sector": "Consumer Staples Merchandise Retail"
+  },
+  {
+    "symbol": "D",
+    "sector": "Multi-Utilities"
+  },
+  {
+    "symbol": "DPZ",
+    "sector": "Restaurants"
+  },
+  {
+    "symbol": "DASH",
+    "sector": "Specialized Consumer Services"
+  },
+  {
+    "symbol": "DOV",
+    "sector": "Industrial Machinery & Supplies & Components"
+  },
+  {
+    "symbol": "DOW",
+    "sector": "Commodity Chemicals"
+  },
+  {
+    "symbol": "DHI",
+    "sector": "Homebuilding"
+  },
+  {
+    "symbol": "DTE",
+    "sector": "Multi-Utilities"
+  },
+  {
+    "symbol": "DUK",
+    "sector": "Electric Utilities"
+  },
+  {
+    "symbol": "DD",
+    "sector": "Specialty Chemicals"
+  },
+  {
+    "symbol": "ETN",
+    "sector": "Electrical Components & Equipment"
+  },
+  {
+    "symbol": "EBAY",
+    "sector": "Broadline Retail"
+  },
+  {
+    "symbol": "ECL",
+    "sector": "Specialty Chemicals"
+  },
+  {
+    "symbol": "EIX",
+    "sector": "Electric Utilities"
+  },
+  {
+    "symbol": "EW",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "EA",
+    "sector": "Interactive Home Entertainment"
+  },
+  {
+    "symbol": "ELV",
+    "sector": "Managed Health Care"
+  },
+  {
+    "symbol": "EME",
+    "sector": "Construction & Engineering"
+  },
+  {
+    "symbol": "EMR",
+    "sector": "Electrical Components & Equipment"
+  },
+  {
+    "symbol": "ETR",
+    "sector": "Electric Utilities"
+  },
+  {
+    "symbol": "EOG",
+    "sector": "Oil & Gas Exploration & Production"
+  },
+  {
+    "symbol": "EPAM",
+    "sector": "IT Consulting & Other Services"
+  },
+  {
+    "symbol": "EQT",
+    "sector": "Oil & Gas Exploration & Production"
+  },
+  {
+    "symbol": "EFX",
+    "sector": "Research & Consulting Services"
+  },
+  {
+    "symbol": "EQIX",
+    "sector": "Data Center REITs"
+  },
+  {
+    "symbol": "EQR",
+    "sector": "Multi-Family Residential REITs"
+  },
+  {
+    "symbol": "ERIE",
+    "sector": "Insurance Brokers"
+  },
+  {
+    "symbol": "ESS",
+    "sector": "Multi-Family Residential REITs"
+  },
+  {
+    "symbol": "EL",
+    "sector": "Personal Care Products"
+  },
+  {
+    "symbol": "EG",
+    "sector": "Reinsurance"
+  },
+  {
+    "symbol": "EVRG",
+    "sector": "Electric Utilities"
+  },
+  {
+    "symbol": "ES",
+    "sector": "Electric Utilities"
+  },
+  {
+    "symbol": "EXC",
+    "sector": "Electric Utilities"
+  },
+  {
+    "symbol": "EXE",
+    "sector": "Oil & Gas Exploration & Production"
+  },
+  {
+    "symbol": "EXPE",
+    "sector": "Hotels, Resorts & Cruise Lines"
+  },
+  {
+    "symbol": "EXPD",
+    "sector": "Air Freight & Logistics"
+  },
+  {
+    "symbol": "EXR",
+    "sector": "Self-Storage REITs"
+  },
+  {
+    "symbol": "XOM",
+    "sector": "Integrated Oil & Gas"
+  },
+  {
+    "symbol": "FFIV",
+    "sector": "Communications Equipment"
+  },
+  {
+    "symbol": "FDS",
+    "sector": "Financial Exchanges & Data"
+  },
+  {
+    "symbol": "FICO",
+    "sector": "Application Software"
+  },
+  {
+    "symbol": "FAST",
+    "sector": "Trading Companies & Distributors"
+  },
+  {
+    "symbol": "FRT",
+    "sector": "Retail REITs"
+  },
+  {
+    "symbol": "FDX",
+    "sector": "Air Freight & Logistics"
+  },
+  {
+    "symbol": "FIS",
+    "sector": "Transaction & Payment Processing Services"
+  },
+  {
+    "symbol": "FITB",
+    "sector": "Regional Banks"
+  },
+  {
+    "symbol": "FSLR",
+    "sector": "Semiconductors"
+  },
+  {
+    "symbol": "FE",
+    "sector": "Electric Utilities"
+  },
+  {
+    "symbol": "FISV",
+    "sector": "Transaction & Payment Processing Services"
+  },
+  {
+    "symbol": "F",
+    "sector": "Automobile Manufacturers"
+  },
+  {
+    "symbol": "FTNT",
+    "sector": "Systems Software"
+  },
+  {
+    "symbol": "FTV",
+    "sector": "Industrial Machinery & Supplies & Components"
+  },
+  {
+    "symbol": "FOXA",
+    "sector": "Broadcasting"
+  },
+  {
+    "symbol": "FOX",
+    "sector": "Broadcasting"
+  },
+  {
+    "symbol": "BEN",
+    "sector": "Asset Management & Custody Banks"
+  },
+  {
+    "symbol": "FCX",
+    "sector": "Copper"
+  },
+  {
+    "symbol": "GRMN",
+    "sector": "Consumer Electronics"
+  },
+  {
+    "symbol": "IT",
+    "sector": "IT Consulting & Other Services"
+  },
+  {
+    "symbol": "GE",
+    "sector": "Aerospace & Defense"
+  },
+  {
+    "symbol": "GEHC",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "GEV",
+    "sector": "Heavy Electrical Equipment"
+  },
+  {
+    "symbol": "GEN",
+    "sector": "Systems Software"
+  },
+  {
+    "symbol": "GNRC",
+    "sector": "Electrical Components & Equipment"
+  },
+  {
+    "symbol": "GD",
+    "sector": "Aerospace & Defense"
+  },
+  {
+    "symbol": "GIS",
+    "sector": "Packaged Foods & Meats"
+  },
+  {
+    "symbol": "GM",
+    "sector": "Automobile Manufacturers"
+  },
+  {
+    "symbol": "GPC",
+    "sector": "Distributors"
+  },
+  {
+    "symbol": "GILD",
+    "sector": "Biotechnology"
+  },
+  {
+    "symbol": "GPN",
+    "sector": "Transaction & Payment Processing Services"
+  },
+  {
+    "symbol": "GL",
+    "sector": "Life & Health Insurance"
+  },
+  {
+    "symbol": "GDDY",
+    "sector": "Internet Services & Infrastructure"
+  },
+  {
+    "symbol": "GS",
+    "sector": "Investment Banking & Brokerage"
+  },
+  {
+    "symbol": "HAL",
+    "sector": "Oil & Gas Equipment & Services"
+  },
+  {
+    "symbol": "HIG",
+    "sector": "Property & Casualty Insurance"
+  },
+  {
+    "symbol": "HAS",
+    "sector": "Leisure Products"
+  },
+  {
+    "symbol": "HCA",
+    "sector": "Health Care Facilities"
+  },
+  {
+    "symbol": "DOC",
+    "sector": "Health Care REITs"
+  },
+  {
+    "symbol": "HSIC",
+    "sector": "Health Care Distributors"
+  },
+  {
+    "symbol": "HSY",
+    "sector": "Packaged Foods & Meats"
+  },
+  {
+    "symbol": "HPE",
+    "sector": "Technology Hardware, Storage & Peripherals"
+  },
+  {
+    "symbol": "HLT",
+    "sector": "Hotels, Resorts & Cruise Lines"
+  },
+  {
+    "symbol": "HOLX",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "HD",
+    "sector": "Home Improvement Retail"
+  },
+  {
+    "symbol": "HON",
+    "sector": "Industrial Conglomerates"
+  },
+  {
+    "symbol": "HRL",
+    "sector": "Packaged Foods & Meats"
+  },
+  {
+    "symbol": "HST",
+    "sector": "Hotel & Resort REITs"
+  },
+  {
+    "symbol": "HWM",
+    "sector": "Aerospace & Defense"
+  },
+  {
+    "symbol": "HPQ",
+    "sector": "Technology Hardware, Storage & Peripherals"
+  },
+  {
+    "symbol": "HUBB",
+    "sector": "Industrial Machinery & Supplies & Components"
+  },
+  {
+    "symbol": "HUM",
+    "sector": "Managed Health Care"
+  },
+  {
+    "symbol": "HBAN",
+    "sector": "Regional Banks"
+  },
+  {
+    "symbol": "HII",
+    "sector": "Aerospace & Defense"
+  },
+  {
+    "symbol": "IBM",
+    "sector": "IT Consulting & Other Services"
+  },
+  {
+    "symbol": "IEX",
+    "sector": "Industrial Machinery & Supplies & Components"
+  },
+  {
+    "symbol": "IDXX",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "ITW",
+    "sector": "Industrial Machinery & Supplies & Components"
+  },
+  {
+    "symbol": "INCY",
+    "sector": "Biotechnology"
+  },
+  {
+    "symbol": "IR",
+    "sector": "Industrial Machinery & Supplies & Components"
+  },
+  {
+    "symbol": "PODD",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "INTC",
+    "sector": "Semiconductors"
+  },
+  {
+    "symbol": "IBKR",
+    "sector": "Investment Banking & Brokerage"
+  },
+  {
+    "symbol": "ICE",
+    "sector": "Financial Exchanges & Data"
+  },
+  {
+    "symbol": "IFF",
+    "sector": "Specialty Chemicals"
+  },
+  {
+    "symbol": "IP",
+    "sector": "Paper & Plastic Packaging Products & Materials"
+  },
+  {
+    "symbol": "INTU",
+    "sector": "Application Software"
+  },
+  {
+    "symbol": "ISRG",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "IVZ",
+    "sector": "Asset Management & Custody Banks"
+  },
+  {
+    "symbol": "INVH",
+    "sector": "Single-Family Residential REITs"
+  },
+  {
+    "symbol": "IQV",
+    "sector": "Life Sciences Tools & Services"
+  },
+  {
+    "symbol": "IRM",
+    "sector": "Other Specialized REITs"
+  },
+  {
+    "symbol": "JBHT",
+    "sector": "Cargo Ground Transportation"
+  },
+  {
+    "symbol": "JBL",
+    "sector": "Electronic Manufacturing Services"
+  },
+  {
+    "symbol": "JKHY",
+    "sector": "Transaction & Payment Processing Services"
+  },
+  {
+    "symbol": "J",
+    "sector": "Construction & Engineering"
+  },
+  {
+    "symbol": "JNJ",
+    "sector": "Pharmaceuticals"
+  },
+  {
+    "symbol": "JCI",
+    "sector": "Building Products"
+  },
+  {
+    "symbol": "JPM",
+    "sector": "Diversified Banks"
+  },
+  {
+    "symbol": "KVUE",
+    "sector": "Personal Care Products"
+  },
+  {
+    "symbol": "KDP",
+    "sector": "Soft Drinks & Non-alcoholic Beverages"
+  },
+  {
+    "symbol": "KEY",
+    "sector": "Regional Banks"
+  },
+  {
+    "symbol": "KEYS",
+    "sector": "Electronic Equipment & Instruments"
+  },
+  {
+    "symbol": "KMB",
+    "sector": "Household Products"
+  },
+  {
+    "symbol": "KIM",
+    "sector": "Retail REITs"
+  },
+  {
+    "symbol": "KMI",
+    "sector": "Oil & Gas Storage & Transportation"
+  },
+  {
+    "symbol": "KKR",
+    "sector": "Asset Management & Custody Banks"
+  },
+  {
+    "symbol": "KLAC",
+    "sector": "Semiconductor Materials & Equipment"
+  },
+  {
+    "symbol": "KHC",
+    "sector": "Packaged Foods & Meats"
+  },
+  {
+    "symbol": "KR",
+    "sector": "Food Retail"
+  },
+  {
+    "symbol": "LHX",
+    "sector": "Aerospace & Defense"
+  },
+  {
+    "symbol": "LH",
+    "sector": "Health Care Services"
+  },
+  {
+    "symbol": "LRCX",
+    "sector": "Semiconductor Materials & Equipment"
+  },
+  {
+    "symbol": "LW",
+    "sector": "Packaged Foods & Meats"
+  },
+  {
+    "symbol": "LVS",
+    "sector": "Casinos & Gaming"
+  },
+  {
+    "symbol": "LDOS",
+    "sector": "Diversified Support Services"
+  },
+  {
+    "symbol": "LEN",
+    "sector": "Homebuilding"
+  },
+  {
+    "symbol": "LII",
+    "sector": "Building Products"
+  },
+  {
+    "symbol": "LLY",
+    "sector": "Pharmaceuticals"
+  },
+  {
+    "symbol": "LIN",
+    "sector": "Industrial Gases"
+  },
+  {
+    "symbol": "LYV",
+    "sector": "Movies & Entertainment"
+  },
+  {
+    "symbol": "LMT",
+    "sector": "Aerospace & Defense"
+  },
+  {
+    "symbol": "L",
+    "sector": "Multi-line Insurance"
+  },
+  {
+    "symbol": "LOW",
+    "sector": "Home Improvement Retail"
+  },
+  {
+    "symbol": "LULU",
+    "sector": "Apparel, Accessories & Luxury Goods"
+  },
+  {
+    "symbol": "LYB",
+    "sector": "Specialty Chemicals"
+  },
+  {
+    "symbol": "MTB",
+    "sector": "Regional Banks"
+  },
+  {
+    "symbol": "MPC",
+    "sector": "Oil & Gas Refining & Marketing"
+  },
+  {
+    "symbol": "MAR",
+    "sector": "Hotels, Resorts & Cruise Lines"
+  },
+  {
+    "symbol": "MRSH",
+    "sector": "Insurance Brokers"
+  },
+  {
+    "symbol": "MLM",
+    "sector": "Construction Materials"
+  },
+  {
+    "symbol": "MAS",
+    "sector": "Building Products"
+  },
+  {
+    "symbol": "MA",
+    "sector": "Transaction & Payment Processing Services"
+  },
+  {
+    "symbol": "MTCH",
+    "sector": "Interactive Media & Services"
+  },
+  {
+    "symbol": "MKC",
+    "sector": "Packaged Foods & Meats"
+  },
+  {
+    "symbol": "MCD",
+    "sector": "Restaurants"
+  },
+  {
+    "symbol": "MCK",
+    "sector": "Health Care Distributors"
+  },
+  {
+    "symbol": "MDT",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "MRK",
+    "sector": "Pharmaceuticals"
+  },
+  {
+    "symbol": "META",
+    "sector": "Interactive Media & Services"
+  },
+  {
+    "symbol": "MET",
+    "sector": "Life & Health Insurance"
+  },
+  {
+    "symbol": "MTD",
+    "sector": "Life Sciences Tools & Services"
+  },
+  {
+    "symbol": "MGM",
+    "sector": "Casinos & Gaming"
+  },
+  {
+    "symbol": "MCHP",
+    "sector": "Semiconductors"
+  },
+  {
+    "symbol": "MU",
+    "sector": "Semiconductors"
+  },
+  {
+    "symbol": "MSFT",
+    "sector": "Systems Software"
+  },
+  {
+    "symbol": "MAA",
+    "sector": "Multi-Family Residential REITs"
+  },
+  {
+    "symbol": "MRNA",
+    "sector": "Biotechnology"
+  },
+  {
+    "symbol": "MOH",
+    "sector": "Managed Health Care"
+  },
+  {
+    "symbol": "TAP",
+    "sector": "Brewers"
+  },
+  {
+    "symbol": "MDLZ",
+    "sector": "Packaged Foods & Meats"
+  },
+  {
+    "symbol": "MPWR",
+    "sector": "Semiconductors"
+  },
+  {
+    "symbol": "MNST",
+    "sector": "Soft Drinks & Non-alcoholic Beverages"
+  },
+  {
+    "symbol": "MCO",
+    "sector": "Financial Exchanges & Data"
+  },
+  {
+    "symbol": "MS",
+    "sector": "Investment Banking & Brokerage"
+  },
+  {
+    "symbol": "MOS",
+    "sector": "Fertilizers & Agricultural Chemicals"
+  },
+  {
+    "symbol": "MSI",
+    "sector": "Communications Equipment"
+  },
+  {
+    "symbol": "MSCI",
+    "sector": "Financial Exchanges & Data"
+  },
+  {
+    "symbol": "NDAQ",
+    "sector": "Financial Exchanges & Data"
+  },
+  {
+    "symbol": "NTAP",
+    "sector": "Technology Hardware, Storage & Peripherals"
+  },
+  {
+    "symbol": "NFLX",
+    "sector": "Movies & Entertainment"
+  },
+  {
+    "symbol": "NEM",
+    "sector": "Gold"
+  },
+  {
+    "symbol": "NWSA",
+    "sector": "Publishing"
+  },
+  {
+    "symbol": "NWS",
+    "sector": "Publishing"
+  },
+  {
+    "symbol": "NEE",
+    "sector": "Multi-Utilities"
+  },
+  {
+    "symbol": "NKE",
+    "sector": "Apparel, Accessories & Luxury Goods"
+  },
+  {
+    "symbol": "NI",
+    "sector": "Multi-Utilities"
+  },
+  {
+    "symbol": "NDSN",
+    "sector": "Industrial Machinery & Supplies & Components"
+  },
+  {
+    "symbol": "NSC",
+    "sector": "Rail Transportation"
+  },
+  {
+    "symbol": "NTRS",
+    "sector": "Asset Management & Custody Banks"
+  },
+  {
+    "symbol": "NOC",
+    "sector": "Aerospace & Defense"
+  },
+  {
+    "symbol": "NCLH",
+    "sector": "Hotels, Resorts & Cruise Lines"
+  },
+  {
+    "symbol": "NRG",
+    "sector": "Independent Power Producers & Energy Traders"
+  },
+  {
+    "symbol": "NUE",
+    "sector": "Steel"
+  },
+  {
+    "symbol": "NVDA",
+    "sector": "Semiconductors"
+  },
+  {
+    "symbol": "NVR",
+    "sector": "Homebuilding"
+  },
+  {
+    "symbol": "NXPI",
+    "sector": "Semiconductors"
+  },
+  {
+    "symbol": "ORLY",
+    "sector": "Automotive Retail"
+  },
+  {
+    "symbol": "OXY",
+    "sector": "Oil & Gas Exploration & Production"
+  },
+  {
+    "symbol": "ODFL",
+    "sector": "Cargo Ground Transportation"
+  },
+  {
+    "symbol": "OMC",
+    "sector": "Advertising"
+  },
+  {
+    "symbol": "ON",
+    "sector": "Semiconductors"
+  },
+  {
+    "symbol": "OKE",
+    "sector": "Oil & Gas Storage & Transportation"
+  },
+  {
+    "symbol": "ORCL",
+    "sector": "Application Software"
+  },
+  {
+    "symbol": "OTIS",
+    "sector": "Industrial Machinery & Supplies & Components"
+  },
+  {
+    "symbol": "PCAR",
+    "sector": "Construction Machinery & Heavy Transportation Equipment"
+  },
+  {
+    "symbol": "PKG",
+    "sector": "Paper & Plastic Packaging Products & Materials"
+  },
+  {
+    "symbol": "PLTR",
+    "sector": "Application Software"
+  },
+  {
+    "symbol": "PANW",
+    "sector": "Systems Software"
+  },
+  {
+    "symbol": "PSKY",
+    "sector": "Movies & Entertainment"
+  },
+  {
+    "symbol": "PH",
+    "sector": "Industrial Machinery & Supplies & Components"
+  },
+  {
+    "symbol": "PAYX",
+    "sector": "Human Resource & Employment Services"
+  },
+  {
+    "symbol": "PAYC",
+    "sector": "Human Resource & Employment Services"
+  },
+  {
+    "symbol": "PYPL",
+    "sector": "Transaction & Payment Processing Services"
+  },
+  {
+    "symbol": "PNR",
+    "sector": "Industrial Machinery & Supplies & Components"
+  },
+  {
+    "symbol": "PEP",
+    "sector": "Soft Drinks & Non-alcoholic Beverages"
+  },
+  {
+    "symbol": "PFE",
+    "sector": "Pharmaceuticals"
+  },
+  {
+    "symbol": "PCG",
+    "sector": "Multi-Utilities"
+  },
+  {
+    "symbol": "PM",
+    "sector": "Tobacco"
+  },
+  {
+    "symbol": "PSX",
+    "sector": "Oil & Gas Refining & Marketing"
+  },
+  {
+    "symbol": "PNW",
+    "sector": "Multi-Utilities"
+  },
+  {
+    "symbol": "PNC",
+    "sector": "Diversified Banks"
+  },
+  {
+    "symbol": "POOL",
+    "sector": "Distributors"
+  },
+  {
+    "symbol": "PPG",
+    "sector": "Specialty Chemicals"
+  },
+  {
+    "symbol": "PPL",
+    "sector": "Electric Utilities"
+  },
+  {
+    "symbol": "PFG",
+    "sector": "Life & Health Insurance"
+  },
+  {
+    "symbol": "PG",
+    "sector": "Personal Care Products"
+  },
+  {
+    "symbol": "PGR",
+    "sector": "Property & Casualty Insurance"
+  },
+  {
+    "symbol": "PLD",
+    "sector": "Industrial REITs"
+  },
+  {
+    "symbol": "PRU",
+    "sector": "Life & Health Insurance"
+  },
+  {
+    "symbol": "PEG",
+    "sector": "Electric Utilities"
+  },
+  {
+    "symbol": "PTC",
+    "sector": "Application Software"
+  },
+  {
+    "symbol": "PSA",
+    "sector": "Self-Storage REITs"
+  },
+  {
+    "symbol": "PHM",
+    "sector": "Homebuilding"
+  },
+  {
+    "symbol": "PWR",
+    "sector": "Construction & Engineering"
+  },
+  {
+    "symbol": "QCOM",
+    "sector": "Semiconductors"
+  },
+  {
+    "symbol": "DGX",
+    "sector": "Health Care Services"
+  },
+  {
+    "symbol": "Q",
+    "sector": "Semiconductor Materials & Equipment"
+  },
+  {
+    "symbol": "RL",
+    "sector": "Apparel, Accessories & Luxury Goods"
+  },
+  {
+    "symbol": "RJF",
+    "sector": "Investment Banking & Brokerage"
+  },
+  {
+    "symbol": "RTX",
+    "sector": "Aerospace & Defense"
+  },
+  {
+    "symbol": "O",
+    "sector": "Retail REITs"
+  },
+  {
+    "symbol": "REG",
+    "sector": "Retail REITs"
+  },
+  {
+    "symbol": "REGN",
+    "sector": "Biotechnology"
+  },
+  {
+    "symbol": "RF",
+    "sector": "Regional Banks"
+  },
+  {
+    "symbol": "RSG",
+    "sector": "Environmental & Facilities Services"
+  },
+  {
+    "symbol": "RMD",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "RVTY",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "HOOD",
+    "sector": "Investment Banking & Brokerage"
+  },
+  {
+    "symbol": "ROK",
+    "sector": "Electrical Components & Equipment"
+  },
+  {
+    "symbol": "ROL",
+    "sector": "Environmental & Facilities Services"
+  },
+  {
+    "symbol": "ROP",
+    "sector": "Electronic Equipment & Instruments"
+  },
+  {
+    "symbol": "ROST",
+    "sector": "Apparel Retail"
+  },
+  {
+    "symbol": "RCL",
+    "sector": "Hotels, Resorts & Cruise Lines"
+  },
+  {
+    "symbol": "SPGI",
+    "sector": "Financial Exchanges & Data"
+  },
+  {
+    "symbol": "CRM",
+    "sector": "Application Software"
+  },
+  {
+    "symbol": "SNDK",
+    "sector": "Technology Hardware, Storage & Peripherals"
+  },
+  {
+    "symbol": "SBAC",
+    "sector": "Telecom Tower REITs"
+  },
+  {
+    "symbol": "SLB",
+    "sector": "Oil & Gas Equipment & Services"
+  },
+  {
+    "symbol": "STX",
+    "sector": "Technology Hardware, Storage & Peripherals"
+  },
+  {
+    "symbol": "SRE",
+    "sector": "Multi-Utilities"
+  },
+  {
+    "symbol": "NOW",
+    "sector": "Systems Software"
+  },
+  {
+    "symbol": "SHW",
+    "sector": "Specialty Chemicals"
+  },
+  {
+    "symbol": "SPG",
+    "sector": "Retail REITs"
+  },
+  {
+    "symbol": "SWKS",
+    "sector": "Semiconductors"
+  },
+  {
+    "symbol": "SJM",
+    "sector": "Packaged Foods & Meats"
+  },
+  {
+    "symbol": "SW",
+    "sector": "Paper & Plastic Packaging Products & Materials"
+  },
+  {
+    "symbol": "SNA",
+    "sector": "Industrial Machinery & Supplies & Components"
+  },
+  {
+    "symbol": "SOLV",
+    "sector": "Health Care Technology"
+  },
+  {
+    "symbol": "SO",
+    "sector": "Electric Utilities"
+  },
+  {
+    "symbol": "LUV",
+    "sector": "Passenger Airlines"
+  },
+  {
+    "symbol": "SWK",
+    "sector": "Industrial Machinery & Supplies & Components"
+  },
+  {
+    "symbol": "SBUX",
+    "sector": "Restaurants"
+  },
+  {
+    "symbol": "STT",
+    "sector": "Asset Management & Custody Banks"
+  },
+  {
+    "symbol": "STLD",
+    "sector": "Steel"
+  },
+  {
+    "symbol": "STE",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "SYK",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "SMCI",
+    "sector": "Technology Hardware, Storage & Peripherals"
+  },
+  {
+    "symbol": "SYF",
+    "sector": "Consumer Finance"
+  },
+  {
+    "symbol": "SNPS",
+    "sector": "Application Software"
+  },
+  {
+    "symbol": "SYY",
+    "sector": "Food Distributors"
+  },
+  {
+    "symbol": "TMUS",
+    "sector": "Wireless Telecommunication Services"
+  },
+  {
+    "symbol": "TROW",
+    "sector": "Asset Management & Custody Banks"
+  },
+  {
+    "symbol": "TTWO",
+    "sector": "Interactive Home Entertainment"
+  },
+  {
+    "symbol": "TPR",
+    "sector": "Apparel, Accessories & Luxury Goods"
+  },
+  {
+    "symbol": "TRGP",
+    "sector": "Oil & Gas Storage & Transportation"
+  },
+  {
+    "symbol": "TGT",
+    "sector": "Consumer Staples Merchandise Retail"
+  },
+  {
+    "symbol": "TEL",
+    "sector": "Electronic Manufacturing Services"
+  },
+  {
+    "symbol": "TDY",
+    "sector": "Electronic Equipment & Instruments"
+  },
+  {
+    "symbol": "TER",
+    "sector": "Semiconductor Materials & Equipment"
+  },
+  {
+    "symbol": "TSLA",
+    "sector": "Automobile Manufacturers"
+  },
+  {
+    "symbol": "TXN",
+    "sector": "Semiconductors"
+  },
+  {
+    "symbol": "TPL",
+    "sector": "Oil & Gas Exploration & Production"
+  },
+  {
+    "symbol": "TXT",
+    "sector": "Aerospace & Defense"
+  },
+  {
+    "symbol": "TMO",
+    "sector": "Life Sciences Tools & Services"
+  },
+  {
+    "symbol": "TJX",
+    "sector": "Apparel Retail"
+  },
+  {
+    "symbol": "TKO",
+    "sector": "Movies & Entertainment"
+  },
+  {
+    "symbol": "TTD",
+    "sector": "Advertising"
+  },
+  {
+    "symbol": "TSCO",
+    "sector": "Other Specialty Retail"
+  },
+  {
+    "symbol": "TT",
+    "sector": "Building Products"
+  },
+  {
+    "symbol": "TDG",
+    "sector": "Aerospace & Defense"
+  },
+  {
+    "symbol": "TRV",
+    "sector": "Property & Casualty Insurance"
+  },
+  {
+    "symbol": "TRMB",
+    "sector": "Electronic Equipment & Instruments"
+  },
+  {
+    "symbol": "TFC",
+    "sector": "Diversified Banks"
+  },
+  {
+    "symbol": "TYL",
+    "sector": "Application Software"
+  },
+  {
+    "symbol": "TSN",
+    "sector": "Packaged Foods & Meats"
+  },
+  {
+    "symbol": "USB",
+    "sector": "Diversified Banks"
+  },
+  {
+    "symbol": "UBER",
+    "sector": "Passenger Ground Transportation"
+  },
+  {
+    "symbol": "UDR",
+    "sector": "Multi-Family Residential REITs"
+  },
+  {
+    "symbol": "ULTA",
+    "sector": "Other Specialty Retail"
+  },
+  {
+    "symbol": "UNP",
+    "sector": "Rail Transportation"
+  },
+  {
+    "symbol": "UAL",
+    "sector": "Passenger Airlines"
+  },
+  {
+    "symbol": "UPS",
+    "sector": "Air Freight & Logistics"
+  },
+  {
+    "symbol": "URI",
+    "sector": "Trading Companies & Distributors"
+  },
+  {
+    "symbol": "UNH",
+    "sector": "Managed Health Care"
+  },
+  {
+    "symbol": "UHS",
+    "sector": "Health Care Facilities"
+  },
+  {
+    "symbol": "VLO",
+    "sector": "Oil & Gas Refining & Marketing"
+  },
+  {
+    "symbol": "VTR",
+    "sector": "Health Care REITs"
+  },
+  {
+    "symbol": "VLTO",
+    "sector": "Environmental & Facilities Services"
+  },
+  {
+    "symbol": "VRSN",
+    "sector": "Internet Services & Infrastructure"
+  },
+  {
+    "symbol": "VRSK",
+    "sector": "Research & Consulting Services"
+  },
+  {
+    "symbol": "VZ",
+    "sector": "Integrated Telecommunication Services"
+  },
+  {
+    "symbol": "VRTX",
+    "sector": "Biotechnology"
+  },
+  {
+    "symbol": "VTRS",
+    "sector": "Pharmaceuticals"
+  },
+  {
+    "symbol": "VICI",
+    "sector": "Hotel & Resort REITs"
+  },
+  {
+    "symbol": "V",
+    "sector": "Transaction & Payment Processing Services"
+  },
+  {
+    "symbol": "VST",
+    "sector": "Electric Utilities"
+  },
+  {
+    "symbol": "VMC",
+    "sector": "Construction Materials"
+  },
+  {
+    "symbol": "WRB",
+    "sector": "Property & Casualty Insurance"
+  },
+  {
+    "symbol": "GWW",
+    "sector": "Industrial Machinery & Supplies & Components"
+  },
+  {
+    "symbol": "WAB",
+    "sector": "Construction Machinery & Heavy Transportation Equipment"
+  },
+  {
+    "symbol": "WMT",
+    "sector": "Consumer Staples Merchandise Retail"
+  },
+  {
+    "symbol": "DIS",
+    "sector": "Movies & Entertainment"
+  },
+  {
+    "symbol": "WBD",
+    "sector": "Broadcasting"
+  },
+  {
+    "symbol": "WM",
+    "sector": "Environmental & Facilities Services"
+  },
+  {
+    "symbol": "WAT",
+    "sector": "Life Sciences Tools & Services"
+  },
+  {
+    "symbol": "WEC",
+    "sector": "Electric Utilities"
+  },
+  {
+    "symbol": "WFC",
+    "sector": "Diversified Banks"
+  },
+  {
+    "symbol": "WELL",
+    "sector": "Health Care REITs"
+  },
+  {
+    "symbol": "WST",
+    "sector": "Health Care Supplies"
+  },
+  {
+    "symbol": "WDC",
+    "sector": "Technology Hardware, Storage & Peripherals"
+  },
+  {
+    "symbol": "WY",
+    "sector": "Timber REITs"
+  },
+  {
+    "symbol": "WSM",
+    "sector": "Homefurnishing Retail"
+  },
+  {
+    "symbol": "WMB",
+    "sector": "Oil & Gas Storage & Transportation"
+  },
+  {
+    "symbol": "WTW",
+    "sector": "Insurance Brokers"
+  },
+  {
+    "symbol": "WDAY",
+    "sector": "Application Software"
+  },
+  {
+    "symbol": "WYNN",
+    "sector": "Casinos & Gaming"
+  },
+  {
+    "symbol": "XEL",
+    "sector": "Multi-Utilities"
+  },
+  {
+    "symbol": "XYL",
+    "sector": "Industrial Machinery & Supplies & Components"
+  },
+  {
+    "symbol": "YUM",
+    "sector": "Restaurants"
+  },
+  {
+    "symbol": "ZBRA",
+    "sector": "Electronic Equipment & Instruments"
+  },
+  {
+    "symbol": "ZBH",
+    "sector": "Health Care Equipment"
+  },
+  {
+    "symbol": "ZTS",
+    "sector": "Pharmaceuticals"
+  }
+]
