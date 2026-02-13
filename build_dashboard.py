@@ -1024,6 +1024,7 @@ def build_html(summary, quotes):
                     "role": q.get("Role", ""),
                     "significance": q.get("Significance", "Medium"),
                 })
+            concrete_total = len([r for r in sc_info["quotes"] if r.get("Significance") == "High"])
             use_cases.append({
                 "name": sc_name,
                 "count": sc_info["count"],
@@ -1031,6 +1032,7 @@ def build_html(summary, quotes):
                 "companies": sorted(sc_info["companies"]),
                 "description": best_summary,
                 "quotes": quote_list,
+                "concreteCount": concrete_total,
             })
 
         sector_report_data[sector] = {
@@ -1293,6 +1295,27 @@ def build_html(summary, quotes):
     font-size: 0.75rem;
     color: var(--text-muted);
     margin-top: 4px;
+  }}
+  .substance-badge {{
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 8px;
+    vertical-align: middle;
+    margin-left: 6px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }}
+  .substance-badge.concrete {{
+    background: rgba(72, 187, 120, 0.15);
+    color: #48bb78;
+    border: 1px solid rgba(72, 187, 120, 0.3);
+  }}
+  .substance-badge.none {{
+    background: rgba(160, 160, 160, 0.1);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
   }}
   .quote-drill-down {{
     background: var(--bg-card);
@@ -2274,10 +2297,14 @@ function renderUseCases(useCases) {{
     useCases.map((uc, i) => {{
       const comps = (uc.companies || []).slice(0, 8).map(t => TICKER_NAMES[t] ? `${{t}} (${{TICKER_NAMES[t]}})` : t).join(', ');
       const moreComps = (uc.companies || []).length > 8 ? ` + ${{uc.companies.length - 8}} more` : '';
+      const concreteCount = uc.concreteCount != null ? uc.concreteCount : (uc.quotes || []).filter(q => q.significance === 'High').length;
+      const concreteBadge = concreteCount > 0
+        ? `<span class="substance-badge concrete" title="${{concreteCount}} quote${{concreteCount !== 1 ? 's' : ''}} with concrete details (specific products, dollar figures, measurable outcomes)">${{concreteCount}} concrete</span>`
+        : `<span class="substance-badge none" title="No quotes with concrete details — mostly directional or aspirational">no concrete data</span>`;
       return `<div class="use-case-item" onclick="onUseCaseClick(${{i}})">
         <div class="use-case-rank">#${{i + 1}}</div>
         <div class="use-case-header">
-          <div class="use-case-name">${{esc(uc.name)}}</div>
+          <div class="use-case-name">${{esc(uc.name)}} ${{concreteBadge}}</div>
           <div class="use-case-count">${{uc.companyCount > 1 ? uc.companyCount + ' companies · ' : ''}}${{uc.count}} segment${{uc.count !== 1 ? 's' : ''}}</div>
           ${{uc.description ? `<div class="use-case-desc">${{esc(uc.description)}}</div>` : ''}}
           ${{comps ? `<div class="use-case-companies">${{esc(comps)}}${{moreComps}}</div>` : ''}}
