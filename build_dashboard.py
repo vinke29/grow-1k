@@ -3303,7 +3303,7 @@ function launchDashboard(name, ticker) {{
 // ============================================================
 let _presSlide = 0;
 let _presChart = null;
-const PRES_TOTAL_SLIDES = 1; // will grow as we add slides
+const PRES_TOTAL_SLIDES = 2;
 
 function _presPopulateCompanyList() {{
   const dl = document.getElementById('presCompanyList');
@@ -3356,12 +3356,32 @@ function _presGetScope() {{
   const total = qData.reduce((s, v) => s + v, 0);
   const growthX = firstVal > 0 ? (lastVal / firstVal).toFixed(1) : (lastVal > 0 ? '++' : '0');
 
-  // Exec %
+  // Exec vs analyst
   let exec = 0, analyst = 0;
-  quotes.forEach(q => {{ if (q.role === 'Analyst') analyst++; else exec++; }});
+  const execByQ = {{}}, analystByQ = {{}};
+  quotes.forEach(q => {{
+    if (q.role === 'Analyst') {{
+      analyst++;
+      analystByQ[q.quarter] = (analystByQ[q.quarter] || 0) + 1;
+    }} else {{
+      exec++;
+      execByQ[q.quarter] = (execByQ[q.quarter] || 0) + 1;
+    }}
+  }});
   const execPct = (exec + analyst) > 0 ? Math.round(exec / (exec + analyst) * 100) : 0;
+  const analystPct = 100 - execPct;
+  const execQData = QUARTERS.map(q => execByQ[q] || 0);
+  const analystQData = QUARTERS.map(q => analystByQ[q] || 0);
 
-  return {{ mode, label, quotes, summary, companies, nonVague, byQ, qLabels, qData, firstVal, lastVal, total, growthX, execPct }};
+  // Exec % trend: first active quarter vs last
+  const firstActiveIdx = qData.findIndex(v => v > 0);
+  const lastActiveIdx = qData.length - 1;
+  const firstExecPct = firstActiveIdx >= 0 && (execQData[firstActiveIdx] + analystQData[firstActiveIdx]) > 0
+    ? Math.round(execQData[firstActiveIdx] / (execQData[firstActiveIdx] + analystQData[firstActiveIdx]) * 100) : 0;
+  const lastExecPct = (execQData[lastActiveIdx] + analystQData[lastActiveIdx]) > 0
+    ? Math.round(execQData[lastActiveIdx] / (execQData[lastActiveIdx] + analystQData[lastActiveIdx]) * 100) : 0;
+
+  return {{ mode, label, quotes, summary, companies, nonVague, byQ, qLabels, qData, firstVal, lastVal, total, growthX, execPct, analystPct, exec, analyst, execQData, analystQData, firstExecPct, lastExecPct }};
 }}
 
 function renderPresSlide() {{
@@ -3431,6 +3451,100 @@ function renderPresSlide() {{
               ticks: {{ color: tc.text }},
             }},
             x: {{
+              grid: {{ display: false }},
+              ticks: {{ color: tc.text, maxRotation: 45 }},
+            }},
+          }},
+        }},
+      }});
+    }}
+
+  }} else if (_presSlide === 1) {{
+    // SLIDE 2: Who Is Driving the Narrative?
+    const execTrend = s.lastExecPct - s.firstExecPct;
+    const trendDir = execTrend > 5 ? 'increasingly' : execTrend < -5 ? 'decreasingly' : 'consistently';
+
+    let headline, subhead;
+    if (s.execPct >= 70) {{
+      headline = s.mode === 'company'
+        ? `${{s.label}}'s leadership is proactively shaping the AI narrative`
+        : `${{s.execPct}}% of AI mentions come from executives \u2014 leadership is driving the story`;
+      subhead = s.mode === 'company'
+        ? `${{s.execPct}}% of AI mentions are executive-driven, not responses to analyst questions. ${{s.label}} is ${{trendDir}} framing AI as a strategic priority.`
+        : `Across ${{s.label}}, executives are ${{trendDir}} bringing up AI unprompted. This isn\u2019t analysts fishing for answers \u2014 it\u2019s leadership signaling strategic intent.`;
+    }} else if (s.execPct >= 40) {{
+      headline = s.mode === 'company'
+        ? `${{s.label}}'s AI conversation is split between executives and analysts`
+        : `AI discussion is balanced \u2014 ${{s.execPct}}% executive, ${{s.analystPct}}% analyst`;
+      subhead = s.mode === 'company'
+        ? `AI comes up from both sides: executives volunteering updates and analysts pressing for details. Neither side fully owns the narrative yet.`
+        : `Neither executives nor analysts dominate the AI conversation. Executives are engaging, but analysts are ${{trendDir}} pushing for specifics.`;
+    }} else {{
+      headline = s.mode === 'company'
+        ? `Analysts are driving ${{s.label}}'s AI conversation \u2014 not executives`
+        : `${{s.analystPct}}% of AI mentions are analyst-driven \u2014 executives are reactive`;
+      subhead = s.mode === 'company'
+        ? `Only ${{s.execPct}}% of AI mentions come from ${{s.label}}'s leadership. Analysts are asking the questions, suggesting the company hasn\u2019t made AI a top-of-mind executive priority.`
+        : `Analysts are doing the heavy lifting on AI discussion. Executives are responding, not leading \u2014 a sign that AI may not yet be a genuine strategic priority.`;
+    }}
+
+    area.innerHTML = `<div class="pres-slide">
+      <div class="slide-kicker">Slide 2 \u2014 Who Drives the Narrative?</div>
+      <div class="slide-headline">${{headline}}</div>
+      <div class="slide-subhead">${{subhead}}</div>
+      <div class="slide-big-nums">
+        <div class="big-num"><span class="val">${{s.execPct}}%</span><span class="lbl">Executive-Driven</span></div>
+        <div class="big-num"><span class="val">${{s.analystPct}}%</span><span class="lbl">Analyst-Driven</span></div>
+        <div class="big-num"><span class="val">${{s.exec.toLocaleString()}}</span><span class="lbl">Exec Mentions</span></div>
+        <div class="big-num"><span class="val">${{s.analyst.toLocaleString()}}</span><span class="lbl">Analyst Mentions</span></div>
+      </div>
+      <div class="pres-chart-wrap"><canvas id="presChart2"></canvas></div>
+    </div>`;
+
+    const ctx = document.getElementById('presChart2');
+    if (ctx) {{
+      const tc = getThemeColors();
+      _presChart = new Chart(ctx, {{
+        type: 'bar',
+        data: {{
+          labels: s.qLabels,
+          datasets: [
+            {{
+              label: 'Executive',
+              data: s.execQData,
+              backgroundColor: violet,
+              borderRadius: 4,
+              borderSkipped: false,
+            }},
+            {{
+              label: 'Analyst',
+              data: s.analystQData,
+              backgroundColor: amberAlpha,
+              borderColor: amber,
+              borderWidth: 1,
+              borderRadius: 4,
+              borderSkipped: false,
+            }},
+          ]
+        }},
+        options: {{
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {{
+            legend: {{
+              labels: {{ color: tc.text, usePointStyle: true, pointStyle: 'rectRounded', padding: 16 }},
+              position: 'top',
+            }},
+          }},
+          scales: {{
+            y: {{
+              beginAtZero: true,
+              stacked: true,
+              grid: {{ color: tc.grid }},
+              ticks: {{ color: tc.text }},
+            }},
+            x: {{
+              stacked: true,
               grid: {{ display: false }},
               ticks: {{ color: tc.text, maxRotation: 45 }},
             }},
