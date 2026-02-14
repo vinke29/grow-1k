@@ -1083,7 +1083,7 @@ def build_html(summary, quotes):
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI in S&P 500 Earnings Calls (2023-2025)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgenjs.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <style>
   :root[data-theme="dark"] {{
     --bg: #0c0c0c;
@@ -1851,7 +1851,6 @@ def build_html(summary, quotes):
       <h1>AI in S&P 500 Earnings Calls</h1>
       <p class="subtitle" id="dashSubtitle">Analysis of {total_transcripts:,} earnings call transcripts across {total_companies} companies (2023-2025)</p>
     </div>
-    <button class="theme-toggle" onclick="toggleTheme()">Dark Mode</button>
   </div>
 
   <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
@@ -3365,7 +3364,8 @@ function toggleTheme() {{
   const current = html.getAttribute('data-theme');
   const next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
-  document.querySelector('.theme-toggle').textContent = next === 'dark' ? 'Light Mode' : 'Dark Mode';
+  const tb = document.querySelector('.theme-toggle');
+  if (tb) tb.textContent = next === 'dark' ? 'Light Mode' : 'Dark Mode';
   const tc = getThemeColors();
   Object.values(Chart.instances).forEach(chart => {{
     chart.options.scales && Object.values(chart.options.scales).forEach(scale => {{
@@ -4440,7 +4440,7 @@ function downloadPresAsPDF() {{
     // Replace canvas elements with captured PNG images
     if (chartImages[i]) {{
       html = html.replace(/<canvas[^>]*><\/canvas>/gi,
-        `<img src="${{chartImages[i]}}" style="width:100%; max-height:300px; object-fit:contain;">`);
+        `<img src="${{chartImages[i]}}" style="width:100%; height:auto;">`);
     }} else {{
       html = html.replace(/<canvas[^>]*><\/canvas>/gi, '');
     }}
@@ -4453,17 +4453,21 @@ function downloadPresAsPDF() {{
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html><head><style>
     * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 40px; color: #1a1a2e; }}
-    .page {{ page-break-after: always; page-break-inside: avoid; padding: 32px 0; min-height: 95vh; }}
-    .page:last-child {{ page-break-after: avoid; }}
-    .pres-slide {{ page-break-inside: avoid; }}
+    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 0; color: #1a1a2e; }}
+    .page {{ break-after: page; padding: 40px; height: 100vh; box-sizing: border-box; overflow: hidden; position: relative; }}
+    .page:last-child {{ break-after: avoid; }}
     .slide-kicker {{ font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: ${{accentColor}}; margin-bottom: 10px; }}
     .slide-headline {{ font-size: 1.6rem; font-weight: 800; line-height: 1.25; margin-bottom: 10px; }}
     .pres-chart-wrap {{ margin-top: 12px; }}
+    .pres-chart-wrap img {{ width: 100%; height: auto; }}
     .pres-branding {{ display: flex; align-items: center; gap: 8px; justify-content: flex-end; padding: 12px 4px 0; margin-top: 16px; border-top: 1px solid #e4e4e0; opacity: 0.55; }}
     .pres-branding img {{ height: 24px; max-width: 80px; object-fit: contain; }}
     .pres-branding span {{ font-size: 0.75rem; color: #999; }}
-    @media print {{ body {{ padding: 20px; }} .page {{ min-height: 98vh; }} }}
+    @media print {{
+      body {{ padding: 0; margin: 0; }}
+      .page {{ break-after: page; height: 100vh; padding: 40px; }}
+      .page:last-child {{ break-after: avoid; }}
+    }}
   </style></head><body>`);
   allSlides.forEach(html => {{
     w.document.write(`<div class="page">${{html}}</div>`);
