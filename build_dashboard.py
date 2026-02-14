@@ -1083,6 +1083,7 @@ def build_html(summary, quotes):
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI in S&P 500 Earnings Calls (2023-2025)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgenjs.bundle.js"></script>
 <style>
   :root[data-theme="dark"] {{
     --bg: #0c0c0c;
@@ -1588,6 +1589,40 @@ def build_html(summary, quotes):
     position: relative;
     min-height: 520px;
   }}
+  .pres-container:fullscreen,
+  .pres-container:-webkit-full-screen {{
+    background: var(--bg);
+    padding: 32px 48px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }}
+  .pres-container:fullscreen .pres-slide,
+  .pres-container:-webkit-full-screen .pres-slide {{
+    max-width: 1100px;
+    margin: 0 auto;
+    font-size: 1.15em;
+  }}
+  .pres-container:fullscreen .slide-headline,
+  .pres-container:-webkit-full-screen .slide-headline {{
+    font-size: 2.2rem;
+  }}
+  .pres-container:fullscreen .pres-chart-wrap,
+  .pres-container:-webkit-full-screen .pres-chart-wrap {{
+    height: clamp(280px, 40vh, 480px);
+  }}
+  .pres-fullscreen-btn {{
+    background: var(--bg-card);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }}
+  .pres-fullscreen-btn:hover {{ border-color: var(--accent); color: var(--accent); }}
   .pres-toolbar {{
     display: flex;
     align-items: center;
@@ -1645,18 +1680,16 @@ def build_html(summary, quotes):
     margin-bottom: 8px;
   }}
   .pres-slide .slide-headline {{
-    font-size: 1.6rem;
+    font-size: clamp(1.4rem, 2.5vw, 2rem);
     font-weight: 800;
     color: var(--text);
     line-height: 1.25;
     margin-bottom: 8px;
-    max-width: 700px;
   }}
   .pres-slide .slide-subhead {{
     font-size: 0.95rem;
     color: var(--text-secondary);
     line-height: 1.6;
-    max-width: 620px;
     margin-bottom: 28px;
   }}
   .pres-slide .slide-big-nums {{
@@ -1687,9 +1720,102 @@ def build_html(summary, quotes):
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 20px;
-    height: 260px;
+    height: clamp(220px, 30vh, 360px);
     position: relative;
   }}
+  @media (min-width: 1200px) {{
+    .pres-slide .slide-headline {{ font-size: 2.1rem; }}
+    .pres-slide .slide-kicker {{ font-size: 0.75rem; letter-spacing: 2.5px; }}
+  }}
+  @media print {{
+    body * {{ visibility: hidden; }}
+    .pres-container, .pres-container * {{ visibility: visible; }}
+    .pres-container {{ position: absolute; left: 0; top: 0; width: 100%; }}
+    .pres-toolbar {{ display: none !important; }}
+  }}
+  /* Settings drawer */
+  .pres-settings-overlay {{
+    position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 9998;
+    opacity: 0; transition: opacity 0.25s; pointer-events: none;
+  }}
+  .pres-settings-overlay.open {{ opacity: 1; pointer-events: auto; }}
+  .pres-settings-drawer {{
+    position: fixed; top: 0; right: 0; bottom: 0; width: 340px; max-width: 90vw;
+    background: var(--bg-card); border-left: 1px solid var(--border);
+    z-index: 9999; transform: translateX(100%); transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+    overflow-y: auto; padding: 28px 24px;
+    box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+  }}
+  .pres-settings-drawer.open {{ transform: translateX(0); }}
+  .pres-settings-drawer h3 {{
+    font-size: 1.05rem; font-weight: 700; margin: 0 0 20px; color: var(--text);
+    display: flex; align-items: center; justify-content: space-between;
+  }}
+  .pres-settings-drawer h3 button {{
+    background: none; border: none; color: var(--text-muted); font-size: 1.3rem; cursor: pointer; padding: 0 4px;
+  }}
+  .pres-settings-drawer h3 button:hover {{ color: var(--text); }}
+  .pres-settings-section {{
+    margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border);
+  }}
+  .pres-settings-section:last-child {{ border-bottom: none; }}
+  .pres-settings-section label {{
+    display: block; font-size: 0.78rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 10px;
+  }}
+  .pres-swatch-row {{ display: flex; gap: 10px; flex-wrap: wrap; }}
+  .pres-swatch {{
+    width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+    border: 3px solid transparent; transition: border-color 0.15s, transform 0.15s;
+  }}
+  .pres-swatch:hover {{ transform: scale(1.15); }}
+  .pres-swatch.active {{ border-color: var(--text); }}
+  .pres-theme-toggle {{
+    display: flex; gap: 8px;
+  }}
+  .pres-theme-toggle button {{
+    flex: 1; padding: 8px 0; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text-secondary); font-size: 0.85rem; cursor: pointer;
+    transition: all 0.15s;
+  }}
+  .pres-theme-toggle button.active {{
+    background: var(--accent); color: #fff; border-color: var(--accent);
+  }}
+  .pres-logo-zone {{
+    border: 2px dashed var(--border); border-radius: 10px; padding: 16px;
+    text-align: center; cursor: pointer; transition: border-color 0.2s;
+    position: relative;
+  }}
+  .pres-logo-zone:hover {{ border-color: var(--accent); }}
+  .pres-logo-zone input[type="file"] {{
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  }}
+  .pres-logo-preview {{
+    display: flex; align-items: center; gap: 12px; margin-top: 12px;
+  }}
+  .pres-logo-preview img {{
+    height: 40px; max-width: 120px; object-fit: contain; border-radius: 4px;
+  }}
+  .pres-logo-preview button {{
+    background: none; border: 1px solid var(--border); color: var(--text-muted);
+    border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; cursor: pointer;
+  }}
+  .pres-logo-preview button:hover {{ border-color: var(--accent); color: var(--accent); }}
+  .pres-settings-drawer input[type="text"] {{
+    width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); font-size: 0.9rem;
+  }}
+  .pres-settings-drawer input[type="text"]:focus {{
+    outline: none; border-color: var(--accent);
+  }}
+  /* Branding watermark on content slides */
+  .pres-branding {{
+    display: flex; align-items: center; gap: 8px; justify-content: flex-end;
+    padding: 12px 4px 0; margin-top: 16px; border-top: 1px solid var(--border);
+    opacity: 0.55;
+  }}
+  .pres-branding img {{ height: 24px; max-width: 80px; object-fit: contain; }}
+  .pres-branding span {{ font-size: 0.75rem; color: var(--text-muted); }}
 </style>
 </head>
 <body>
@@ -1964,6 +2090,10 @@ def build_html(summary, quotes):
           <button onclick="presNav(-1)" id="presPrev" disabled>&larr; Prev</button>
           <span class="pres-counter" id="presCounter">1 / 1</span>
           <button onclick="presNav(1)" id="presNext">Next &rarr;</button>
+          <button class="pres-fullscreen-btn" onclick="togglePresFullscreen()" id="presFullscreenBtn" title="Toggle fullscreen">&#x26F6; Present</button>
+          <button class="pres-fullscreen-btn" onclick="downloadPresAsPDF()" title="Download as PDF">&#x2913; PDF</button>
+          <button class="pres-fullscreen-btn" onclick="downloadPresAsPPTX()" title="Download as PowerPoint">&#x2913; PPTX</button>
+          <button class="pres-fullscreen-btn" onclick="togglePresSettings()" title="Presentation settings">&#x2699; Settings</button>
         </div>
       </div>
       <div id="presSlideArea"></div>
@@ -1971,6 +2101,49 @@ def build_html(summary, quotes):
   </div>
 
 </div> <!-- /mainDashboard -->
+
+<!-- Settings drawer overlay (outside mainDashboard so it's never clipped) -->
+<div class="pres-settings-overlay" id="presSettingsOverlay" onclick="togglePresSettings()"></div>
+<div class="pres-settings-drawer" id="presSettingsDrawer">
+  <h3>Presentation Settings <button onclick="togglePresSettings()">&times;</button></h3>
+
+  <div class="pres-settings-section">
+    <label>Theme</label>
+    <div class="pres-theme-toggle">
+      <button id="presThemeLight" onclick="setPresTheme('light')">Light</button>
+      <button id="presThemeDark" onclick="setPresTheme('dark')">Dark</button>
+    </div>
+  </div>
+
+  <div class="pres-settings-section">
+    <label>Accent Color</label>
+    <div class="pres-swatch-row" id="presSwatchRow">
+      <div class="pres-swatch" data-color="#7c6aef" style="background:#7c6aef;" onclick="setPresAccent(this)" title="Violet"></div>
+      <div class="pres-swatch" data-color="#4dabf7" style="background:#4dabf7;" onclick="setPresAccent(this)" title="Blue"></div>
+      <div class="pres-swatch" data-color="#2ec4b6" style="background:#2ec4b6;" onclick="setPresAccent(this)" title="Teal"></div>
+      <div class="pres-swatch" data-color="#f4a261" style="background:#f4a261;" onclick="setPresAccent(this)" title="Orange"></div>
+      <div class="pres-swatch" data-color="#e85d75" style="background:#e85d75;" onclick="setPresAccent(this)" title="Rose"></div>
+      <div class="pres-swatch" data-color="#48bb78" style="background:#48bb78;" onclick="setPresAccent(this)" title="Emerald"></div>
+    </div>
+  </div>
+
+  <div class="pres-settings-section">
+    <label>Logo</label>
+    <div class="pres-logo-zone" id="presLogoZone">
+      <input type="file" accept="image/*" onchange="onPresLogoUpload(event)">
+      <div style="font-size:0.85rem; color:var(--text-muted);">Click or drop an image</div>
+    </div>
+    <div class="pres-logo-preview" id="presLogoPreview" style="display:none;">
+      <img id="presLogoImg" src="" alt="Logo">
+      <button onclick="removePresLogo()">Remove</button>
+    </div>
+  </div>
+
+  <div class="pres-settings-section">
+    <label>Presenter / Company Name</label>
+    <input type="text" id="presNameInput" placeholder="Your name or company" oninput="onPresNameInput(this.value)">
+  </div>
+</div>
 
 <script>
 const RAW_DATA = {raw_data_json};
@@ -2021,8 +2194,8 @@ const tc = getThemeColors();
 Chart.defaults.color = tc.text;
 Chart.defaults.borderColor = tc.grid;
 
-const violet = '#7c6aef';
-const violetAlpha = 'rgba(124, 106, 239, 0.2)';
+let violet = '#7c6aef';
+let violetAlpha = 'rgba(124, 106, 239, 0.2)';
 const pink = '#e85d75';
 const pinkAlpha = 'rgba(232, 93, 117, 0.2)';
 const teal = '#2ec4b6';
@@ -3206,6 +3379,7 @@ function toggleTheme() {{
     chart.update();
   }});
   localStorage.setItem('theme', next);
+  _updateThemeButtons();
 }}
 // Restore saved theme
 (function() {{
@@ -3287,10 +3461,145 @@ function startLoading() {{
   showStep();
 }}
 
+// === Presentation Settings ===
+function togglePresSettings() {{
+  document.getElementById('presSettingsOverlay').classList.toggle('open');
+  document.getElementById('presSettingsDrawer').classList.toggle('open');
+}}
+
+function setPresTheme(theme) {{
+  const current = document.documentElement.getAttribute('data-theme');
+  if (current !== theme) toggleTheme();
+  _updateThemeButtons();
+}}
+
+function _updateThemeButtons() {{
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const lt = document.getElementById('presThemeLight');
+  const dk = document.getElementById('presThemeDark');
+  if (lt) {{ lt.classList.toggle('active', !isDark); }}
+  if (dk) {{ dk.classList.toggle('active', isDark); }}
+}}
+
+function _hexToRgba(hex, a) {{
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `rgba(${{r}},${{g}},${{b}},${{a}})`;
+}}
+
+function setPresAccent(el) {{
+  const color = el.getAttribute('data-color');
+  document.documentElement.style.setProperty('--accent', color);
+  // Update JS chart color vars
+  violet = color;
+  violetAlpha = _hexToRgba(color, 0.2);
+  // Update swatch active state
+  document.querySelectorAll('.pres-swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  localStorage.setItem('presAccent', color);
+  // Re-render current slide to pick up new colors
+  renderPresSlide();
+}}
+
+function _restorePresAccent() {{
+  const saved = localStorage.getItem('presAccent');
+  if (saved) {{
+    document.documentElement.style.setProperty('--accent', saved);
+    violet = saved;
+    violetAlpha = _hexToRgba(saved, 0.2);
+    document.querySelectorAll('.pres-swatch').forEach(s => {{
+      s.classList.toggle('active', s.getAttribute('data-color') === saved);
+    }});
+  }} else {{
+    // Mark default swatch
+    const first = document.querySelector('.pres-swatch[data-color="#7c6aef"]');
+    if (first) first.classList.add('active');
+  }}
+}}
+
+function onPresLogoUpload(e) {{
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {{
+    const b64 = ev.target.result;
+    localStorage.setItem('presLogo', b64);
+    _showPresLogo(b64);
+    renderPresSlide();
+  }};
+  reader.readAsDataURL(file);
+}}
+
+function _showPresLogo(b64) {{
+  const preview = document.getElementById('presLogoPreview');
+  const img = document.getElementById('presLogoImg');
+  if (preview && img) {{
+    img.src = b64;
+    preview.style.display = 'flex';
+  }}
+}}
+
+function removePresLogo() {{
+  localStorage.removeItem('presLogo');
+  const preview = document.getElementById('presLogoPreview');
+  if (preview) preview.style.display = 'none';
+  // Reset file input
+  const zone = document.getElementById('presLogoZone');
+  if (zone) {{ const inp = zone.querySelector('input'); if (inp) inp.value = ''; }}
+  renderPresSlide();
+}}
+
+function onPresNameInput(val) {{
+  localStorage.setItem('presName', val);
+  renderPresSlide();
+}}
+
+function _getPresBranding() {{
+  const logo = localStorage.getItem('presLogo') || '';
+  const name = localStorage.getItem('presName') || '';
+  return {{ logo, name, has: !!(logo || name) }};
+}}
+
+function _presBrandingWatermark() {{
+  const b = _getPresBranding();
+  if (!b.has) return '';
+  let inner = '';
+  if (b.logo) inner += `<img src="${{b.logo}}" alt="">`;
+  if (b.name) inner += `<span>${{b.name}}</span>`;
+  return `<div class="pres-branding">${{inner}}</div>`;
+}}
+
+function _presBrandingTitle() {{
+  const b = _getPresBranding();
+  let html = '';
+  if (b.logo) html += `<div style="margin-bottom:18px;"><img src="${{b.logo}}" style="height:48px; max-width:160px; object-fit:contain;" alt=""></div>`;
+  // name is shown below the hook text — returned separately
+  return html;
+}}
+
+function _presBrandingTitleName() {{
+  const b = _getPresBranding();
+  if (!b.name) return '';
+  return `<div style="margin-top:32px; font-size:0.85rem; font-weight:600; color:var(--text-muted); letter-spacing:1px;">${{b.name}}</div>`;
+}}
+
+// Restore settings on load
+function _restorePresSettings() {{
+  _restorePresAccent();
+  _updateThemeButtons();
+  // Logo
+  const savedLogo = localStorage.getItem('presLogo');
+  if (savedLogo) _showPresLogo(savedLogo);
+  // Name
+  const savedName = localStorage.getItem('presName') || '';
+  const inp = document.getElementById('presNameInput');
+  if (inp) inp.value = savedName;
+}}
+_restorePresSettings();
+
 // Presentation state (declared early so launchDashboard can call renderPresSlide)
 let _presSlide = 0;
 let _presChart = null;
-const PRES_TOTAL_SLIDES = 5;
+const PRES_TOTAL_SLIDES = 6;
 
 function launchDashboard(name, ticker) {{
   // Save for session
@@ -3470,6 +3779,37 @@ function renderPresSlide() {{
   const s = _presGetScope();
 
   if (_presSlide === 0) {{
+    // TITLE SLIDE — minimalist, adaptive to filter
+    let kicker, headline, hook;
+
+    if (s.mode === 'company') {{
+      kicker = s.label;
+      headline = `What ${{s.total.toLocaleString()}} AI mentions<br><span style="color:var(--accent);">actually tell us</span>`;
+      hook = `Every earnings call is a signal. Most of it is noise.`;
+    }} else if (s.mode === 'sector') {{
+      kicker = s.label;
+      headline = `AI across ${{s.label}}:<br><span style="color:var(--accent);">Rising fast. Proven slowly.</span>`;
+      hook = `${{s.companies.length}} companies are talking about AI. We traced what they\u2019re actually doing with it.`;
+    }} else {{
+      kicker = 'S&P 500';
+      headline = `Everyone\u2019s talking about AI.<br><span style="color:var(--accent);">Almost no one is proving it.</span>`;
+      hook = `We analyzed every AI mention across ${{s.companies.length}} companies. Here\u2019s what we found.`;
+    }}
+
+    area.innerHTML = `<div class="pres-slide" style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; min-height:60vh;">
+      ${{_presBrandingTitle()}}
+      <div style="font-size:0.8rem; letter-spacing:3px; text-transform:uppercase; color:var(--text-muted); margin-bottom:28px;">${{kicker}}</div>
+      <div style="font-size:2.4rem; font-weight:800; color:var(--text); line-height:1.25; max-width:680px;">
+        ${{headline}}
+      </div>
+      <div style="font-size:1.05rem; color:var(--text-secondary); margin-top:28px; max-width:480px; line-height:1.6;">
+        ${{hook}}
+      </div>
+      ${{_presBrandingTitleName()}}
+      <div style="margin-top:48px; font-size:0.75rem; color:var(--text-muted); letter-spacing:1px;">\u2192</div>
+    </div>`;
+
+  }} else if (_presSlide === 1) {{
     // SLIDE 1: The Context
     const firstQ = QUARTERS.find((q, i) => s.qData[i] > 0) || QUARTERS[0];
     const lastQ = QUARTERS[QUARTERS.length - 1];
@@ -3543,6 +3883,7 @@ function renderPresSlide() {{
         ${{framing}}
       </div>
       <div class="pres-chart-wrap"><canvas id="presChart1"></canvas></div>
+      ${{_presBrandingWatermark()}}
     </div>`;
 
     // Render chart
@@ -3583,7 +3924,7 @@ function renderPresSlide() {{
       }});
     }}
 
-  }} else if (_presSlide === 1) {{
+  }} else if (_presSlide === 2) {{
     // SLIDE 2: Who Is Driving the Narrative?
     const execTrend = s.lastExecPct - s.firstExecPct;
     const trendWord = execTrend > 5 ? 'increasingly' : execTrend < -5 ? 'less and less' : 'consistently';
@@ -3644,6 +3985,7 @@ function renderPresSlide() {{
         ${{punchline}}
       </div>
       <div class="pres-chart-wrap"><canvas id="presChart2"></canvas></div>
+      ${{_presBrandingWatermark()}}
     </div>`;
 
     const ctx = document.getElementById('presChart2');
@@ -3698,7 +4040,7 @@ function renderPresSlide() {{
       }});
     }}
 
-  }} else if (_presSlide === 2) {{
+  }} else if (_presSlide === 3) {{
     // SLIDE 3: Substance vs Hype
     const totalSegs = s.total;
     const vagueCount = s.vague.length;
@@ -3759,6 +4101,7 @@ function renderPresSlide() {{
         ${{punchline}}
       </div>
       <div class="pres-chart-wrap"><canvas id="presChart3"></canvas></div>
+      ${{_presBrandingWatermark()}}
     </div>`;
 
     const ctx = document.getElementById('presChart3');
@@ -3822,7 +4165,7 @@ function renderPresSlide() {{
       }});
     }}
 
-  }} else if (_presSlide === 3) {{
+  }} else if (_presSlide === 4) {{
     // SLIDE 4: What They're Actually Using AI For
     // Picks up from Slide 3's framework:
     //   s.total = all segments, s.vague = buzzword-only,
@@ -3934,9 +4277,10 @@ function renderPresSlide() {{
         ${{punchline}}
       </div>
       <div style="margin-top:12px;">${{ucCardsHtml}}</div>
+      ${{_presBrandingWatermark()}}
     </div>`;
 
-  }} else if (_presSlide === 4) {{
+  }} else if (_presSlide === 5) {{
     // SLIDE 5: What This Signals
     const concretePct = s.substancePct;
     const growthNum = parseFloat(s.growthX);
@@ -4038,6 +4382,7 @@ function renderPresSlide() {{
       <div style="margin:16px 0 0; padding:12px 16px; border-left:3px solid var(--accent); font-size:0.9rem; color:var(--text); font-style:italic; background:var(--bg-card); border-radius:0 8px 8px 0;">
         ${{punchline}}
       </div>
+      ${{_presBrandingWatermark()}}
     </div>`;
   }}
 }}
@@ -4053,10 +4398,260 @@ function _presToggleUC(id) {{
   if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
 }}
 
+function togglePresFullscreen() {{
+  const container = document.querySelector('.pres-container');
+  if (!container) return;
+  if (!document.fullscreenElement) {{
+    container.requestFullscreen().catch(() => {{}});
+  }} else {{
+    document.exitFullscreen();
+  }}
+}}
+
+function _presChartToImages() {{
+  // Capture each slide's chart canvas as a PNG data URL
+  const savedSlide = _presSlide;
+  const area = document.getElementById('presSlideArea');
+  const chartImages = {{}};
+  for (let i = 0; i < PRES_TOTAL_SLIDES; i++) {{
+    _presSlide = i;
+    renderPresSlide();
+    const canvas = area.querySelector('canvas');
+    if (canvas) {{
+      try {{ chartImages[i] = canvas.toDataURL('image/png'); }} catch(e) {{}}
+    }}
+  }}
+  _presSlide = savedSlide;
+  renderPresSlide();
+  return chartImages;
+}}
+
+function downloadPresAsPDF() {{
+  // Capture chart images before collecting HTML
+  const chartImages = _presChartToImages();
+
+  const savedSlide = _presSlide;
+  const area = document.getElementById('presSlideArea');
+  const allSlides = [];
+  for (let i = 0; i < PRES_TOTAL_SLIDES; i++) {{
+    _presSlide = i;
+    renderPresSlide();
+    let html = area.innerHTML;
+    // Replace canvas elements with captured PNG images
+    if (chartImages[i]) {{
+      html = html.replace(/<canvas[^>]*><\/canvas>/gi,
+        `<img src="${{chartImages[i]}}" style="width:100%; max-height:300px; object-fit:contain;">`);
+    }} else {{
+      html = html.replace(/<canvas[^>]*><\/canvas>/gi, '');
+    }}
+    allSlides.push(html);
+  }}
+  _presSlide = savedSlide;
+  renderPresSlide();
+
+  const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || violet;
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><style>
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 40px; color: #1a1a2e; }}
+    .page {{ page-break-after: always; page-break-inside: avoid; padding: 32px 0; min-height: 95vh; }}
+    .page:last-child {{ page-break-after: avoid; }}
+    .pres-slide {{ page-break-inside: avoid; }}
+    .slide-kicker {{ font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: ${{accentColor}}; margin-bottom: 10px; }}
+    .slide-headline {{ font-size: 1.6rem; font-weight: 800; line-height: 1.25; margin-bottom: 10px; }}
+    .pres-chart-wrap {{ margin-top: 12px; }}
+    .pres-branding {{ display: flex; align-items: center; gap: 8px; justify-content: flex-end; padding: 12px 4px 0; margin-top: 16px; border-top: 1px solid #e4e4e0; opacity: 0.55; }}
+    .pres-branding img {{ height: 24px; max-width: 80px; object-fit: contain; }}
+    .pres-branding span {{ font-size: 0.75rem; color: #999; }}
+    @media print {{ body {{ padding: 20px; }} .page {{ min-height: 98vh; }} }}
+  </style></head><body>`);
+  allSlides.forEach(html => {{
+    w.document.write(`<div class="page">${{html}}</div>`);
+  }});
+  w.document.write('</body></html>');
+  w.document.close();
+  setTimeout(() => {{ w.print(); }}, 500);
+}}
+
+function downloadPresAsPPTX() {{
+  if (typeof PptxGenJS === 'undefined') {{
+    alert('PptxGenJS library not loaded. Please check your internet connection and try again.');
+    return;
+  }}
+  const chartImages = _presChartToImages();
+  const pptx = new PptxGenJS();
+  pptx.defineLayout({{ name: 'WIDE', width: 13.33, height: 7.5 }});
+  pptx.layout = 'WIDE';
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const bgColor = isDark ? '0c0c0c' : 'FFFFFF';
+  const textColor = isDark ? 'ebebeb' : '1a1a2e';
+  const mutedColor = isDark ? '888888' : '6b6b6b';
+  const accentHex = (getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#7c6aef').replace('#', '');
+  const branding = _getPresBranding();
+
+  // Collect slide content by rendering each
+  const savedSlide = _presSlide;
+  const area = document.getElementById('presSlideArea');
+  const slideData = [];
+  for (let i = 0; i < PRES_TOTAL_SLIDES; i++) {{
+    _presSlide = i;
+    renderPresSlide();
+    const slideEl = area.querySelector('.pres-slide');
+    const kicker = slideEl ? (slideEl.querySelector('.slide-kicker')?.textContent || '') : '';
+    const headlineEl = slideEl ? slideEl.querySelector('.slide-headline') : null;
+    const headline = headlineEl ? headlineEl.textContent : '';
+    // Gather bullet text
+    const bullets = [];
+    if (slideEl) {{
+      slideEl.querySelectorAll('div[style*="padding:4px"]').forEach(el => {{
+        const t = el.textContent.trim();
+        if (t) bullets.push(t);
+      }});
+    }}
+    // Get punchline / framing (blockquote-like element)
+    let punchline = '';
+    if (slideEl) {{
+      const bq = slideEl.querySelector('div[style*="border-left:3px"]');
+      if (bq) punchline = bq.textContent.trim();
+    }}
+    // Title slide special content
+    let hook = '';
+    if (i === 0 && slideEl) {{
+      const hookEl = slideEl.querySelector('div[style*="max-width:480px"]');
+      if (hookEl) hook = hookEl.textContent.trim();
+      const kickerEl = slideEl.querySelector('div[style*="letter-spacing:3px"]');
+      if (kickerEl && !kicker) {{
+        // use the kicker div on title
+      }}
+    }}
+    slideData.push({{ kicker, headline, bullets, punchline, hook }});
+  }}
+  _presSlide = savedSlide;
+  renderPresSlide();
+
+  // Build PPTX slides
+  slideData.forEach((sd, i) => {{
+    const slide = pptx.addSlide();
+    slide.background = {{ color: bgColor }};
+
+    if (i === 0) {{
+      // Title slide
+      if (branding.logo) {{
+        try {{
+          slide.addImage({{ data: branding.logo, x: 5.5, y: 0.6, h: 0.7, sizing: {{ type: 'contain', w: 2.3, h: 0.7 }} }});
+        }} catch(e) {{}}
+      }}
+      slide.addText(sd.kicker || 'S&P 500', {{
+        x: 1.5, y: 1.8, w: 10.3, h: 0.5,
+        fontSize: 12, fontFace: 'Arial', color: mutedColor,
+        align: 'center', letterSpacing: 3, isTextBox: true,
+      }});
+      slide.addText(sd.headline, {{
+        x: 1.5, y: 2.4, w: 10.3, h: 2.0,
+        fontSize: 32, fontFace: 'Arial', bold: true, color: textColor,
+        align: 'center', lineSpacingMultiple: 1.15, isTextBox: true,
+      }});
+      if (sd.hook) {{
+        slide.addText(sd.hook, {{
+          x: 3.0, y: 4.6, w: 7.3, h: 1.0,
+          fontSize: 16, fontFace: 'Arial', color: mutedColor,
+          align: 'center', lineSpacingMultiple: 1.4, isTextBox: true,
+        }});
+      }}
+      if (branding.name) {{
+        slide.addText(branding.name, {{
+          x: 3.0, y: 5.8, w: 7.3, h: 0.5,
+          fontSize: 12, fontFace: 'Arial', color: mutedColor,
+          align: 'center', isTextBox: true,
+        }});
+      }}
+    }} else {{
+      // Content slides
+      if (sd.kicker) {{
+        slide.addText(sd.kicker.toUpperCase(), {{
+          x: 0.8, y: 0.4, w: 11.7, h: 0.4,
+          fontSize: 10, fontFace: 'Arial', bold: true, color: accentHex,
+          letterSpacing: 2, isTextBox: true,
+        }});
+      }}
+      if (sd.headline) {{
+        slide.addText(sd.headline, {{
+          x: 0.8, y: 0.9, w: 11.7, h: 1.0,
+          fontSize: 24, fontFace: 'Arial', bold: true, color: textColor,
+          lineSpacingMultiple: 1.2, isTextBox: true,
+        }});
+      }}
+      // Bullets
+      if (sd.bullets.length > 0) {{
+        const bodyText = sd.bullets.map(b => ({{ text: b, options: {{ bullet: true, fontSize: 14, color: mutedColor, lineSpacingMultiple: 1.5 }} }}));
+        slide.addText(bodyText, {{
+          x: 0.8, y: 2.0, w: 11.7, h: 1.8,
+          fontFace: 'Arial', isTextBox: true, valign: 'top',
+        }});
+      }}
+      // Punchline
+      if (sd.punchline) {{
+        const punchY = sd.bullets.length > 0 ? 3.9 : 2.5;
+        slide.addShape(pptx.shapes.RECTANGLE, {{
+          x: 0.8, y: punchY, w: 0.06, h: 0.8, fill: {{ color: accentHex }},
+        }});
+        slide.addText(sd.punchline, {{
+          x: 1.1, y: punchY, w: 11.4, h: 0.8,
+          fontSize: 13, fontFace: 'Arial', italic: true, color: textColor,
+          lineSpacingMultiple: 1.3, isTextBox: true, valign: 'middle',
+        }});
+      }}
+      // Chart image
+      if (chartImages[i]) {{
+        const chartY = sd.punchline ? 5.0 : (sd.bullets.length > 0 ? 4.0 : 2.8);
+        try {{
+          slide.addImage({{ data: chartImages[i], x: 1.0, y: chartY, w: 11.3, h: 2.2 }});
+        }} catch(e) {{}}
+      }}
+      // Branding watermark
+      if (branding.has) {{
+        let brandX = 11.0;
+        if (branding.logo) {{
+          try {{
+            slide.addImage({{ data: branding.logo, x: 10.5, y: 7.0, h: 0.3, sizing: {{ type: 'contain', w: 1.0, h: 0.3 }} }});
+            brandX = 11.6;
+          }} catch(e) {{}}
+        }}
+        if (branding.name) {{
+          slide.addText(branding.name, {{
+            x: brandX, y: 7.0, w: 2.0, h: 0.3,
+            fontSize: 8, fontFace: 'Arial', color: mutedColor,
+            align: 'right', isTextBox: true,
+          }});
+        }}
+      }}
+    }}
+  }});
+
+  pptx.writeFile({{ fileName: 'ai_presentation.pptx' }});
+}}
+
 function presNav(dir) {{
   _presSlide = Math.max(0, Math.min(PRES_TOTAL_SLIDES - 1, _presSlide + dir));
   renderPresSlide();
 }}
+
+// Keyboard arrow navigation for presentation
+document.addEventListener('keydown', function(e) {{
+  // Only respond when presentation tab is active
+  const presTab = document.getElementById('tab-pres');
+  if (!presTab || !presTab.classList.contains('active')) return;
+  // Don't hijack when typing in an input
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {{
+    e.preventDefault();
+    presNav(1);
+  }} else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {{
+    e.preventDefault();
+    presNav(-1);
+  }}
+}});
 </script>
 </body>
 </html>"""
