@@ -1623,6 +1623,20 @@ def build_html(summary, quotes):
     white-space: nowrap;
   }}
   .pres-fullscreen-btn:hover {{ border-color: var(--accent); color: var(--accent); }}
+  .pres-dropdown-menu {{
+    display: none; position: absolute; top: 100%; right: 0; margin-top: 4px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 100; min-width: 160px;
+    overflow: hidden;
+  }}
+  .pres-dropdown-menu.open {{ display: block; }}
+  .pres-dropdown-menu button {{
+    display: block; width: 100%; text-align: left; padding: 10px 16px;
+    background: none; border: none; color: var(--text); font-size: 0.85rem;
+    cursor: pointer; transition: background 0.15s;
+  }}
+  .pres-dropdown-menu button:hover {{ background: var(--bg-hover); }}
+  .pres-dropdown-menu button + button {{ border-top: 1px solid var(--border); }}
   .pres-toolbar {{
     display: flex;
     align-items: center;
@@ -1720,7 +1734,7 @@ def build_html(summary, quotes):
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 20px;
-    height: clamp(220px, 30vh, 360px);
+    height: clamp(280px, 40vh, 500px);
     position: relative;
   }}
   @media (min-width: 1200px) {{
@@ -2090,8 +2104,13 @@ def build_html(summary, quotes):
           <span class="pres-counter" id="presCounter">1 / 1</span>
           <button onclick="presNav(1)" id="presNext">Next &rarr;</button>
           <button class="pres-fullscreen-btn" onclick="togglePresFullscreen()" id="presFullscreenBtn" title="Toggle fullscreen">&#x26F6; Present</button>
-          <button class="pres-fullscreen-btn" onclick="downloadPresAsPDF()" title="Download as PDF">&#x2913; PDF</button>
-          <button class="pres-fullscreen-btn" onclick="downloadPresAsPPTX()" title="Download as PowerPoint">&#x2913; PPTX</button>
+          <div style="position:relative; display:inline-block;">
+            <button class="pres-fullscreen-btn" onclick="document.getElementById('presDownloadMenu').classList.toggle('open')" title="Download">&#x2913; Download &#x25BE;</button>
+            <div id="presDownloadMenu" class="pres-dropdown-menu">
+              <button onclick="document.getElementById('presDownloadMenu').classList.remove('open'); downloadPresAsPDF();">PDF</button>
+              <button onclick="document.getElementById('presDownloadMenu').classList.remove('open'); downloadPresAsPPTX();">PowerPoint (.pptx)</button>
+            </div>
+          </div>
           <button class="pres-fullscreen-btn" onclick="togglePresSettings()" title="Presentation settings">&#x2699; Settings</button>
         </div>
       </div>
@@ -4408,16 +4427,19 @@ function togglePresFullscreen() {{
   }}
 }}
 
-function _presChartToImages() {{
+async function _presChartToImages() {{
   // Capture each slide's chart canvas as a PNG data URL
+  // Must be async because Chart.js needs a frame to render after renderPresSlide()
   const savedSlide = _presSlide;
   const area = document.getElementById('presSlideArea');
   const chartImages = {{}};
   for (let i = 0; i < PRES_TOTAL_SLIDES; i++) {{
     _presSlide = i;
     renderPresSlide();
+    // Wait for Chart.js to finish rendering (disable animation doesn't help retroactively)
+    await new Promise(r => setTimeout(r, 120));
     const canvas = area.querySelector('canvas');
-    if (canvas) {{
+    if (canvas && canvas.width > 0 && canvas.height > 0) {{
       try {{ chartImages[i] = canvas.toDataURL('image/png'); }} catch(e) {{}}
     }}
   }}
@@ -4426,9 +4448,8 @@ function _presChartToImages() {{
   return chartImages;
 }}
 
-function downloadPresAsPDF() {{
-  // Capture chart images before collecting HTML
-  const chartImages = _presChartToImages();
+async function downloadPresAsPDF() {{
+  const chartImages = await _presChartToImages();
 
   const savedSlide = _presSlide;
   const area = document.getElementById('presSlideArea');
@@ -4437,7 +4458,6 @@ function downloadPresAsPDF() {{
     _presSlide = i;
     renderPresSlide();
     let html = area.innerHTML;
-    // Replace canvas elements with captured PNG images
     if (chartImages[i]) {{
       html = html.replace(/<canvas[^>]*><\/canvas>/gi,
         `<img src="${{chartImages[i]}}" style="width:100%; height:auto;">`);
@@ -4458,7 +4478,7 @@ function downloadPresAsPDF() {{
     .page:last-child {{ break-after: avoid; }}
     .slide-kicker {{ font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: ${{accentColor}}; margin-bottom: 10px; }}
     .slide-headline {{ font-size: 1.6rem; font-weight: 800; line-height: 1.25; margin-bottom: 10px; }}
-    .pres-chart-wrap {{ margin-top: 12px; }}
+    .pres-chart-wrap {{ margin-top: 12px; background: #f9f9f7; border-radius: 10px; padding: 16px; }}
     .pres-chart-wrap img {{ width: 100%; height: auto; }}
     .pres-branding {{ display: flex; align-items: center; gap: 8px; justify-content: flex-end; padding: 12px 4px 0; margin-top: 16px; border-top: 1px solid #e4e4e0; opacity: 0.55; }}
     .pres-branding img {{ height: 24px; max-width: 80px; object-fit: contain; }}
@@ -4477,12 +4497,12 @@ function downloadPresAsPDF() {{
   setTimeout(() => {{ w.print(); }}, 500);
 }}
 
-function downloadPresAsPPTX() {{
+async function downloadPresAsPPTX() {{
   if (typeof PptxGenJS === 'undefined') {{
     alert('PptxGenJS library not loaded. Please check your internet connection and try again.');
     return;
   }}
-  const chartImages = _presChartToImages();
+  const chartImages = await _presChartToImages();
   const pptx = new PptxGenJS();
   pptx.defineLayout({{ name: 'WIDE', width: 13.33, height: 7.5 }});
   pptx.layout = 'WIDE';
@@ -4642,6 +4662,14 @@ function presNav(dir) {{
 }}
 
 // Keyboard arrow navigation for presentation
+// Close download dropdown on outside click
+document.addEventListener('click', function(e) {{
+  const menu = document.getElementById('presDownloadMenu');
+  if (menu && menu.classList.contains('open') && !e.target.closest('#presDownloadMenu') && !e.target.closest('[onclick*="presDownloadMenu"]')) {{
+    menu.classList.remove('open');
+  }}
+}});
+
 document.addEventListener('keydown', function(e) {{
   // Only respond when presentation tab is active
   const presTab = document.getElementById('tab-pres');
