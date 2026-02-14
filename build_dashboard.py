@@ -2567,6 +2567,10 @@ function closeQuoteDrillDown() {{
 
 // --- McKinsey Strategic Report (All / Sector / Company views) ---
 
+// Track current report scope for scoped interactions
+let _srCurrentMode = 'all';
+let _srCurrentFilter = null;
+
 // Advanced subcats indicate higher AI maturity
 const ADVANCED_SUBCATS = ['Agentic Workflows', 'Revenue Growth', 'AI Product Development', 'Customer Experience Enhancement', 'Medical Imaging'];
 
@@ -2578,17 +2582,19 @@ function _scoreCompanyMaturity(ticker, quotes) {{
   const advanced = cq.filter(q => ADVANCED_SUBCATS.includes(q.subcategory)).length;
   const volume = cq.length;
   const substanceRate = volume > 0 ? high / volume : 0;
-  // Composite: 40% substance, 30% breadth, 30% advanced-use-case share
+  // Substance-dominant scoring: 55% substance, 20% breadth, 15% advanced, 10% volume
   const breadthNorm = Math.min(subcats.size / 8, 1);
   const advancedNorm = Math.min(advanced / Math.max(volume, 1) * 3, 1);
-  const score = substanceRate * 0.4 + breadthNorm * 0.3 + advancedNorm * 0.3;
+  const volumeNorm = Math.min(volume / 30, 1);
+  const score = substanceRate * 0.55 + breadthNorm * 0.20 + advancedNorm * 0.15 + volumeNorm * 0.10;
   return {{ ticker, volume, high, substanceRate, breadth: subcats.size, advanced, score }};
 }}
 
 function _classifyCompanies(quotes, filterFn) {{
   const relevantQ = filterFn ? quotes.filter(filterFn) : quotes;
   const tickers = [...new Set(relevantQ.map(q => q.company))];
-  const scored = tickers.map(t => _scoreCompanyMaturity(t, relevantQ)).filter(Boolean).sort((a, b) => b.score - a.score);
+  const scored = tickers.map(t => _scoreCompanyMaturity(t, relevantQ)).filter(Boolean)
+    .sort((a, b) => b.score - a.score || b.substanceRate - a.substanceRate);
   if (scored.length === 0) return {{ leaders: [], building: [], exploring: [] }};
   const t1 = Math.ceil(scored.length * 0.2);
   const t2 = Math.ceil(scored.length * 0.5);
@@ -2617,24 +2623,75 @@ function _getSubcatData(quotes) {{
   return data;
 }}
 
-function _tierCard(label, statusClass, color, companies, scopeQuotes) {{
+function _tierCard(label, statusClass, color, companies) {{
   if (companies.length === 0) return '';
-  const avgSubstance = companies.length > 0 ? Math.round(companies.reduce((s, c) => s + c.substanceRate, 0) / companies.length * 100) : 0;
-  const avgBreadth = companies.length > 0 ? (companies.reduce((s, c) => s + c.breadth, 0) / companies.length).toFixed(1) : 0;
+  const avgSubstance = Math.round(companies.reduce((s, c) => s + c.substanceRate, 0) / companies.length * 100);
+  const avgBreadth = (companies.reduce((s, c) => s + c.breadth, 0) / companies.length).toFixed(1);
   return `<div class="sr-wave-card">
     <div class="wave-label" style="color:${{color}}">${{label}}</div>
     <div class="wave-title">${{companies.length}} Compan${{companies.length === 1 ? 'y' : 'ies'}}</div>
-    <span class="wave-status ${{statusClass}}">${{avgSubstance}}% substance rate &bull; ${{avgBreadth}} avg use cases</span>
+    <span class="wave-status ${{statusClass}}">${{avgSubstance}}% avg substance &bull; ${{avgBreadth}} avg use cases</span>
     ${{companies.slice(0, 10).map(c =>
-      `<div class="sr-wave-uc" onclick="document.getElementById('companySearch').value='${{c.ticker}}';document.getElementById('companySearch').dispatchEvent(new Event('input'))">
+      `<div class="sr-wave-uc" onclick="_srExpandCompany('${{c.ticker}}')">
         <span>${{TICKER_NAMES[c.ticker] || c.ticker}}</span>
-        <span class="uc-count">${{c.volume}} seg &middot; ${{Math.round(c.substanceRate * 100)}}% concrete</span>
+        <span class="uc-count">${{c.volume}} mentions &middot; ${{Math.round(c.substanceRate * 100)}}% concrete</span>
       </div>`).join('')}}
     ${{companies.length > 10 ? `<div style="font-size:0.75rem; color:var(--text-muted); padding:6px 0;">+ ${{companies.length - 10}} more</div>` : ''}}
   </div>`;
 }}
 
-function _topUseCasesHtml(subcatData, scopeQuotes) {{
+function _srExpandCompany(ticker) {{
+  // Expand company details inline at bottom of strategic report
+  const existing = document.getElementById('sr-company-expand');
+  if (existing && existing.dataset.ticker === ticker) {{
+    existing.remove();
+    return;
+  }}
+  if (existing) existing.remove();
+
+  const cq = ALL_QUOTES.filter(q => q.company === ticker && q.categories !== 'Vague/Buzzword')
+    .sort((a, b) => (a.significance === 'High' ? 0 : 1) - (b.significance === 'High' ? 0 : 1));
+  const companyName = TICKER_NAMES[ticker] || ticker;
+  const highCount = cq.filter(q => q.significance === 'High').length;
+  const subcats = [...new Set(cq.map(q => q.subcategory).filter(Boolean))];
+
+  let detailHtml = `<div id="sr-company-expand" data-ticker="${{ticker}}" class="sr-section" style="border-color:var(--accent); border-width:2px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="sr-section-label">${{esc(companyName)}} (${{ticker}})</div>
+        <div class="sr-section-title" style="margin-bottom:8px;">${{cq.length}} AI mentions &middot; ${{highCount}} concrete &middot; ${{subcats.length}} use cases</div>
+      </div>
+      <div style="cursor:pointer; font-size:1.2rem; color:var(--text-muted); padding:8px;" onclick="document.getElementById('sr-company-expand').remove()">&#10005;</div>
+    </div>`;
+  if (subcats.length > 0) {{
+    detailHtml += `<div style="margin-bottom:12px; display:flex; flex-wrap:wrap; gap:6px;">
+      ${{subcats.map(sc => `<span style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:2px 8px; font-size:0.72rem; color:var(--text-secondary);">${{esc(sc)}}</span>`).join('')}}
+    </div>`;
+  }}
+  detailHtml += `<div style="max-height:400px; overflow-y:auto;">`;
+  cq.slice(0, 15).forEach(q => {{
+    const sigClass = q.significance === 'High' ? 'sig-high' : 'sig-medium';
+    detailHtml += `<div style="padding:10px 0; border-bottom:1px solid var(--border);">
+      <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:4px; display:flex; gap:10px; flex-wrap:wrap;">
+        <span>${{esc(q.quarter)}}</span>
+        <span>${{esc(q.role || '')}}</span>
+        <span class="${{sigClass}}">${{esc(q.significance || 'Medium')}}</span>
+        ${{q.subcategory ? `<span style="opacity:0.7">${{esc(q.subcategory)}}</span>` : ''}}
+      </div>
+      ${{q.summary ? `<div style="font-size:0.85rem; color:var(--text); font-weight:600; margin-bottom:4px;">${{esc(q.summary)}}</div>` : ''}}
+      ${{q.quote ? `<div style="font-size:0.82rem; color:var(--text-secondary); line-height:1.5;">"${{esc(q.quote.substring(0, 400))}}"</div>` : ''}}
+    </div>`;
+  }});
+  if (cq.length > 15) {{
+    detailHtml += `<div style="padding:10px 0; font-size:0.8rem; color:var(--text-muted);">+ ${{cq.length - 15}} more segments. <a href="#" style="color:var(--accent);" onclick="event.preventDefault();document.getElementById('companySearch').value='${{ticker}}';document.getElementById('companySearch').dispatchEvent(new Event('input'))">View full profile &rarr;</a></div>`;
+  }}
+  detailHtml += `</div></div>`;
+
+  document.getElementById('strategicReport').insertAdjacentHTML('beforeend', detailHtml);
+  document.getElementById('sr-company-expand').scrollIntoView({{ behavior: 'smooth', block: 'nearest' }});
+}}
+
+function _topUseCasesHtml(subcatData) {{
   const sorted = Object.entries(subcatData).sort((a, b) => b[1].count - a[1].count).slice(0, 10);
   if (sorted.length === 0) return '<p style="color:var(--text-muted);">No specific use cases found.</p>';
   return sorted.map(([name, d]) =>
@@ -2647,6 +2704,9 @@ function _topUseCasesHtml(subcatData, scopeQuotes) {{
 
 function renderStrategicReport(mode, filterValue) {{
   const el = document.getElementById('strategicReport');
+  _srCurrentMode = mode;
+  _srCurrentFilter = filterValue;
+
   let scopeQuotes, scopeLabel, scopeSummary, filterFn;
 
   if (mode === 'company') {{
@@ -2710,32 +2770,35 @@ function renderStrategicReport(mode, filterValue) {{
       <div class="sr-section-label">${{esc(scopeLabel)}} &mdash; ${{esc(sector)}}</div>
       <div class="sr-section-title">AI Profile: ${{esc(scopeLabel)}}</div>
       <div class="sr-big-stats">
-        <div class="sr-big-stat"><span class="num">${{totalMentions}}</span><span class="lbl">AI Segments</span></div>
+        <div class="sr-big-stat"><span class="num">${{totalMentions}}</span><span class="lbl">AI Mentions</span></div>
         <div class="sr-big-stat"><span class="num">${{aiRows.length}}</span><span class="lbl">Active Quarters</span></div>
         <div class="sr-big-stat"><span class="num">${{maxIntensity}}%</span><span class="lbl">Peak Intensity</span></div>
         <div class="sr-big-stat"><span class="num">${{execPct}}%</span><span class="lbl">Exec-Driven</span></div>
       </div>
       <div class="sr-body">
-        ${{esc(scopeLabel)}} has referenced AI in <strong>${{totalMentions}} segments</strong> across ${{aiRows.length}} quarters.
+        ${{esc(scopeLabel)}} has referenced AI in <strong>${{totalMentions}} earnings call mentions</strong> across ${{aiRows.length}} quarters.
         ${{execPct > 65 ? 'Executives are proactively championing AI' : execPct < 35 ? 'Most AI discussion is analyst-driven' : 'AI discussion is balanced between executives and analysts'}}.
         ${{rankText}}
       </div>
     </div>`;
   }} else {{
+    const totalCalls = scopeSummary.length;
     html += `<div class="sr-section">
       <div class="sr-section-label">${{mode === 'sector' ? esc(scopeLabel) + ' Sector' : 'Market Overview'}}</div>
       <div class="sr-section-title">${{mode === 'sector' ? esc(scopeLabel) + ': AI Landscape' : 'The Paradox: Everyone Is Talking, Few Are Showing Results'}}</div>
       <div class="sr-big-stats">
-        <div class="sr-big-stat"><span class="num">${{growthX}}x</span><span class="lbl">Segment Growth (${{firstQ}}&rarr;${{lastQ}})</span></div>
+        <div class="sr-big-stat"><span class="num">${{growthX}}x</span><span class="lbl">Growth (${{firstQ}} &rarr; ${{lastQ}})</span></div>
         <div class="sr-big-stat"><span class="num">${{execPct}}%</span><span class="lbl">Exec-Driven</span></div>
         <div class="sr-big-stat"><span class="num">${{uniqueCompanies.length}}</span><span class="lbl">Companies</span></div>
-        <div class="sr-big-stat"><span class="num">${{scopeQuotes.length.toLocaleString()}}</span><span class="lbl">AI Segments</span></div>
+        <div class="sr-big-stat"><span class="num">${{scopeQuotes.length.toLocaleString()}}</span><span class="lbl">AI Mentions</span></div>
       </div>
       <div class="sr-body">
-        ${{mode === 'sector' ? `Across ${{uniqueCompanies.length}} ${{esc(scopeLabel)}} companies, AI` : 'AI'}} discussion volume has grown
+        ${{mode === 'sector'
+          ? `Across ${{uniqueCompanies.length}} ${{esc(scopeLabel)}} companies and ${{totalCalls.toLocaleString()}} earnings calls, AI mentions`
+          : `Across ${{uniqueCompanies.length}} S&P 500 companies and ${{totalCalls.toLocaleString()}} earnings calls, AI mentions`}} have grown
         <strong>${{growthX}}x</strong> from ${{firstQ}} to ${{lastQ}}
-        (${{firstMentions}}&rarr;${{lastMentions}} segments per quarter).
-        <strong>${{execPct}}%</strong> of mentions are executive-driven${{mode === 'all' ? ' \u2014 companies are <em>desperate</em> to talk about AI. But volume alone isn\u2019t value.' : '.'}}</div>
+        (${{firstMentions}} &rarr; ${{lastMentions}} per quarter).
+        <strong>${{execPct}}%</strong> come from executives proactively, not in response to analyst questions${{mode === 'all' ? ' \u2014 but volume alone isn\u2019t value.' : '.'}}</div>
     </div>`;
   }}
 
@@ -2748,9 +2811,9 @@ function renderStrategicReport(mode, filterValue) {{
       <div class="empty">${{gapPct}}% No specifics</div>
     </div>
     <div class="sr-body">
-      Only <strong>${{substancePct}}%</strong> of substantive AI segments (${{highSig.length.toLocaleString()}} of ${{nonVague.length.toLocaleString()}})
+      Only <strong>${{substancePct}}%</strong> of substantive AI mentions (${{highSig.length.toLocaleString()}} of ${{nonVague.length.toLocaleString()}})
       cite concrete details \u2014 dollar figures, measurable outcomes, or specific product launches.
-      ${{vagueCt > 0 ? `${{vagueCt.toLocaleString()}} additional segments were pure buzzwords.` : ''}}
+      ${{vagueCt > 0 ? `${{vagueCt.toLocaleString()}} additional mentions were pure buzzwords and excluded.` : ''}}
     </div>`;
   // Substance heroes (show for all/sector, not company)
   if (mode !== 'company') {{
@@ -2764,7 +2827,7 @@ function renderStrategicReport(mode, filterValue) {{
       html += `<div class="sr-body" style="margin-top:12px; font-weight:600; color:var(--text);">Leading on substance:</div>
       <div class="sr-substance-heroes">
         ${{heroes.map(([t, c]) =>
-          `<span class="sr-hero-chip" onclick="document.getElementById('companySearch').value='${{t}}';document.getElementById('companySearch').dispatchEvent(new Event('input'))">${{TICKER_NAMES[t] || t}} (${{c}})</span>`
+          `<span class="sr-hero-chip" onclick="_srExpandCompany('${{t}}')">${{TICKER_NAMES[t] || t}} (${{c}})</span>`
         ).join('')}}
       </div>`;
     }}
@@ -2777,11 +2840,11 @@ function renderStrategicReport(mode, filterValue) {{
     html += `<div class="sr-section">
       <div class="sr-section-label">AI Maturity Comparison</div>
       <div class="sr-section-title">Companies by AI Adoption Stage</div>
-      <div class="sr-body" style="margin-bottom:8px;">Companies scored on substance rate (concrete evidence), use-case breadth, and presence of advanced AI applications. Click any company to see its full profile.</div>
+      <div class="sr-body" style="margin-bottom:8px;">Companies ranked by a composite score: substance rate (% of mentions backed by concrete evidence, weighted 55%), use-case breadth (20%), advanced AI use cases (15%), and volume (10%). Click any company to expand its details below.</div>
       <div class="sr-waves">
-        ${{_tierCard('Leaders', 'mature', '#48bb78', tiers.leaders, scopeQuotes)}}
-        ${{_tierCard('Building', 'emerging', '#f4a261', tiers.building, scopeQuotes)}}
-        ${{_tierCard('Exploring', 'frontier', '#7c6aef', tiers.exploring, scopeQuotes)}}
+        ${{_tierCard('Leaders', 'mature', '#48bb78', tiers.leaders)}}
+        ${{_tierCard('Building', 'emerging', '#f4a261', tiers.building)}}
+        ${{_tierCard('Exploring', 'frontier', '#7c6aef', tiers.exploring)}}
       </div>
     </div>`;
   }} else {{
@@ -2797,11 +2860,11 @@ function renderStrategicReport(mode, filterValue) {{
     html += `<div class="sr-section">
       <div class="sr-section-label">Peer Comparison &mdash; ${{esc(sector)}}</div>
       <div class="sr-section-title">AI Maturity: <span style="color:${{tierColor}}">${{myTier}}</span> (Rank #${{myIdx + 1}} of ${{allPeers.length}})</div>
-      <div class="sr-body" style="margin-bottom:12px;">Scored on substance rate, use-case breadth, and advanced AI adoption vs. ${{esc(sector)}} peers.</div>
+      <div class="sr-body" style="margin-bottom:12px;">Ranked among ${{esc(sector)}} peers by substance rate (55%), use-case breadth (20%), advanced AI (15%), and volume (10%).</div>
       <div class="sr-waves">
-        ${{_tierCard('Leaders', 'mature', '#48bb78', tiers.leaders.slice(0, 5), peerQuotes)}}
-        ${{_tierCard('Building', 'emerging', '#f4a261', tiers.building.slice(0, 5), peerQuotes)}}
-        ${{_tierCard('Exploring', 'frontier', '#7c6aef', tiers.exploring.slice(0, 5), peerQuotes)}}
+        ${{_tierCard('Leaders', 'mature', '#48bb78', tiers.leaders.slice(0, 5))}}
+        ${{_tierCard('Building', 'emerging', '#f4a261', tiers.building.slice(0, 5))}}
+        ${{_tierCard('Exploring', 'frontier', '#7c6aef', tiers.exploring.slice(0, 5))}}
       </div>
     </div>`;
   }}
@@ -2810,25 +2873,36 @@ function renderStrategicReport(mode, filterValue) {{
   html += `<div class="sr-section">
     <div class="sr-section-label">${{mode === 'company' ? esc(scopeLabel) + ' Focus Areas' : 'Use Case Landscape'}}</div>
     <div class="sr-section-title">Top AI Use Cases</div>
-    ${{_topUseCasesHtml(subcatData, scopeQuotes)}}
+    ${{_topUseCasesHtml(subcatData)}}
   </div>`;
 
-  // === SECTION 5: Closing ===
+  // === SECTION 5: Bottom Line ===
+  const topSubcats = Object.entries(subcatData).sort((a, b) => b[1].count - a[1].count).slice(0, 3).map(([n]) => n);
   if (mode === 'company') {{
+    const sector = scopeSummary[0]?.sector || '';
+    const peerQuotes = ALL_QUOTES.filter(q => q.sector === sector && q.categories !== 'Vague/Buzzword');
+    const peerTickers = [...new Set(peerQuotes.map(q => q.company))];
+    const mySubstance = substancePct;
+    const betterCount = peerTickers.filter(t => {{
+      const tq = peerQuotes.filter(q => q.company === t);
+      const th = tq.filter(q => q.significance === 'High').length;
+      return tq.length > 0 && Math.round(th / tq.length * 100) > mySubstance;
+    }}).length;
     html += `<div class="sr-cta">
-      <div class="cta-headline">${{esc(scopeLabel)}}: ${{substancePct >= 20 ? 'Backing words with evidence' : 'Room to prove the AI thesis'}}</div>
+      <div class="cta-headline">Bottom Line</div>
       <div class="cta-sub">
-        ${{nonVague.length}} substantive AI segments. ${{substancePct}}% cite concrete details.<br>
-        ${{substancePct >= 20 ? 'This company is among the more specific in its AI disclosures.' : 'The next earnings cycle is an opportunity to move from narrative to evidence.'}}
+        ${{esc(scopeLabel)}} has ${{nonVague.length}} substantive AI mentions with a ${{substancePct}}% substance rate${{betterCount > 0 ? ` (${{betterCount}} ${{esc(sector)}} peer${{betterCount !== 1 ? 's' : ''}} score higher)` : ' (top in sector)'}}.
+        ${{topSubcats.length > 0 ? `Key focus areas: ${{topSubcats.join(', ')}}.` : ''}}
       </div>
     </div>`;
   }} else {{
+    const leadersCount = Math.ceil(uniqueCompanies.length * 0.2);
     html += `<div class="sr-cta">
-      <div class="cta-headline">The 2026 Mandate: Close the Substance Gap</div>
+      <div class="cta-headline">Bottom Line</div>
       <div class="cta-sub">
-        ${{uniqueCompanies.length}} companies. ${{scopeQuotes.length.toLocaleString()}} AI segments. Yet only ${{substancePct}}% back their claims with evidence.<br>
-        The next earnings cycle will separate companies truly deploying AI at scale from those still crafting narratives.
-        The question isn't <em>who's talking about AI</em> \u2014 it's <em>who can prove it's working</em>.
+        ${{uniqueCompanies.length}} companies, ${{scopeQuotes.length.toLocaleString()}} AI mentions, but only ${{substancePct}}% backed by evidence.
+        Just ${{leadersCount}} companies (${{Math.round(leadersCount / uniqueCompanies.length * 100)}}%) qualify as Leaders.
+        ${{topSubcats.length > 0 ? `Most-discussed use cases: ${{topSubcats.join(', ')}}.` : ''}}
       </div>
     </div>`;
   }}
@@ -2837,7 +2911,14 @@ function renderStrategicReport(mode, filterValue) {{
 }}
 
 function _srClickUseCase(subcatName) {{
-  const quotes = ALL_QUOTES
+  // Scope to current filter (sector, company, or all)
+  let pool = ALL_QUOTES;
+  if (_srCurrentMode === 'sector' && _srCurrentFilter) {{
+    pool = ALL_QUOTES.filter(q => q.sector === _srCurrentFilter);
+  }} else if (_srCurrentMode === 'company' && _srCurrentFilter) {{
+    pool = ALL_QUOTES.filter(q => q.company === _srCurrentFilter);
+  }}
+  const quotes = pool
     .filter(q => q.subcategory === subcatName && q.quote)
     .sort((a, b) => (a.significance === 'High' ? 0 : 1) - (b.significance === 'High' ? 0 : 1))
     .slice(0, 20)
