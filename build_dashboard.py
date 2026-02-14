@@ -1582,6 +1582,114 @@ def build_html(summary, quotes):
   #mainDashboard {{ display: none; }}
   #mainDashboard.visible {{ display: block; }}
   .personalized {{ color: var(--accent); font-weight: 600; }}
+
+  /* Presentation Mode */
+  .pres-container {{
+    position: relative;
+    min-height: 520px;
+  }}
+  .pres-toolbar {{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }}
+  .pres-toolbar select {{
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }}
+  .pres-nav {{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }}
+  .pres-nav button {{
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }}
+  .pres-nav button:hover {{ border-color: var(--accent); color: var(--accent); }}
+  .pres-nav button:disabled {{ opacity: 0.3; cursor: default; border-color: var(--border); color: var(--text-muted); }}
+  .pres-counter {{
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    min-width: 60px;
+    text-align: center;
+  }}
+  .pres-slide {{
+    animation: presFadeIn 0.4s ease;
+  }}
+  @keyframes presFadeIn {{
+    from {{ opacity: 0; transform: translateY(12px); }}
+    to {{ opacity: 1; transform: translateY(0); }}
+  }}
+  .pres-slide .slide-kicker {{
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }}
+  .pres-slide .slide-headline {{
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.25;
+    margin-bottom: 8px;
+    max-width: 700px;
+  }}
+  .pres-slide .slide-subhead {{
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 620px;
+    margin-bottom: 28px;
+  }}
+  .pres-slide .slide-big-nums {{
+    display: flex;
+    gap: 40px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }}
+  .pres-slide .big-num {{
+    display: flex;
+    flex-direction: column;
+  }}
+  .pres-slide .big-num .val {{
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }}
+  .pres-slide .big-num .lbl {{
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+  }}
+  .pres-chart-wrap {{
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    height: 260px;
+    position: relative;
+  }}
 </style>
 </head>
 <body>
@@ -1636,6 +1744,7 @@ def build_html(summary, quotes):
     <div class="tab" onclick="switchTab('data')">Raw Data</div>
     <div class="tab" onclick="switchTab('quotes')">Top Quotes</div>
     <div class="tab" onclick="switchTab('stocks')">Stock vs AI</div>
+    <div class="tab" onclick="switchTab('pres')">Presentation</div>
   </div>
 
   <!-- KEY INSIGHTS TAB -->
@@ -1836,6 +1945,24 @@ def build_html(summary, quotes):
     </div>
   </div>
 </div>
+  <!-- PRESENTATION TAB -->
+  <div id="tab-pres" class="tab-content">
+    <div class="pres-container">
+      <div class="pres-toolbar">
+        <select id="presFilter" onchange="renderPresSlide()">
+          <option value="All">All S&P 500</option>
+          {sector_options_html}
+        </select>
+        <div class="pres-nav">
+          <button onclick="presNav(-1)" id="presPrev" disabled>&larr; Prev</button>
+          <span class="pres-counter" id="presCounter">1 / 1</span>
+          <button onclick="presNav(1)" id="presNext">Next &rarr;</button>
+        </div>
+      </div>
+      <div id="presSlideArea"></div>
+    </div>
+  </div>
+
 </div> <!-- /mainDashboard -->
 
 <script>
@@ -1908,6 +2035,7 @@ function switchTab(name) {{
   document.getElementById('tab-' + name).classList.add('active');
   document.querySelector('[onclick="switchTab(\\'' + name + '\\')"]').classList.add('active');
   if (name === 'data') renderTable();
+  if (name === 'pres') renderPresSlide();
 }}
 
 // Chart instances
@@ -3167,6 +3295,121 @@ function launchDashboard(name, ticker) {{
     return;
   }}
 }})();
+
+// ============================================================
+// PRESENTATION MODE
+// ============================================================
+let _presSlide = 0;
+let _presChart = null;
+const PRES_TOTAL_SLIDES = 1; // will grow as we add slides
+
+function _presGetScope() {{
+  const filter = document.getElementById('presFilter')?.value || 'All';
+  let quotes, summary, label;
+  if (filter === 'All') {{
+    quotes = ALL_QUOTES;
+    summary = ALL_SUMMARY;
+    label = 'S&P 500';
+  }} else {{
+    quotes = ALL_QUOTES.filter(q => q.sector === filter);
+    summary = ALL_SUMMARY.filter(r => r.sector === filter);
+    label = filter;
+  }}
+  const companies = [...new Set(quotes.map(q => q.company))];
+  const nonVague = quotes.filter(q => q.categories !== 'Vague/Buzzword');
+
+  // Per-quarter mentions
+  const byQ = {{}};
+  quotes.forEach(q => {{ byQ[q.quarter] = (byQ[q.quarter] || 0) + 1; }});
+  const qLabels = QUARTERS;
+  const qData = QUARTERS.map(q => byQ[q] || 0);
+  const firstVal = qData.find(v => v > 0) || 0;
+  const lastVal = qData[qData.length - 1] || 0;
+  const total = qData.reduce((s, v) => s + v, 0);
+  const growthX = firstVal > 0 ? (lastVal / firstVal).toFixed(1) : (lastVal > 0 ? '++' : '0');
+
+  // Exec %
+  let exec = 0, analyst = 0;
+  quotes.forEach(q => {{ if (q.role === 'Analyst') analyst++; else exec++; }});
+  const execPct = (exec + analyst) > 0 ? Math.round(exec / (exec + analyst) * 100) : 0;
+
+  return {{ filter, label, quotes, summary, companies, nonVague, byQ, qLabels, qData, firstVal, lastVal, total, growthX, execPct }};
+}}
+
+function renderPresSlide() {{
+  if (_presChart) {{ _presChart.destroy(); _presChart = null; }}
+  const area = document.getElementById('presSlideArea');
+  if (!area) return;
+
+  // Update nav
+  document.getElementById('presPrev').disabled = _presSlide === 0;
+  document.getElementById('presNext').disabled = _presSlide >= PRES_TOTAL_SLIDES - 1;
+  document.getElementById('presCounter').textContent = `${{_presSlide + 1}} / ${{PRES_TOTAL_SLIDES}}`;
+
+  const s = _presGetScope();
+
+  if (_presSlide === 0) {{
+    // SLIDE 1: The Context
+    const firstQ = QUARTERS.find((q, i) => s.qData[i] > 0) || QUARTERS[0];
+    const lastQ = QUARTERS[QUARTERS.length - 1];
+
+    area.innerHTML = `<div class="pres-slide">
+      <div class="slide-kicker">Slide 1 &mdash; The Context</div>
+      <div class="slide-headline">AI came up in ${{s.total.toLocaleString()}} earnings call segments across ${{s.companies.length}} ${{s.label}} companies</div>
+      <div class="slide-subhead">Each segment is one speaker's turn discussing AI. From ${{s.firstVal}} mentions in ${{firstQ}} to ${{s.lastVal}} in ${{lastQ}} &mdash; a ${{s.growthX}}x increase in two years.</div>
+      <div class="slide-big-nums">
+        <div class="big-num"><span class="val">${{s.total.toLocaleString()}}</span><span class="lbl">AI Segments</span></div>
+        <div class="big-num"><span class="val">${{s.growthX}}x</span><span class="lbl">Growth</span></div>
+        <div class="big-num"><span class="val">${{s.companies.length}}</span><span class="lbl">Companies</span></div>
+        <div class="big-num"><span class="val">${{s.execPct}}%</span><span class="lbl">Exec-Driven</span></div>
+      </div>
+      <div class="pres-chart-wrap"><canvas id="presChart1"></canvas></div>
+    </div>`;
+
+    // Render chart
+    const ctx = document.getElementById('presChart1');
+    if (ctx) {{
+      const tc = getThemeColors();
+      _presChart = new Chart(ctx, {{
+        type: 'bar',
+        data: {{
+          labels: s.qLabels,
+          datasets: [{{
+            label: 'AI Mentions per Quarter',
+            data: s.qData,
+            backgroundColor: s.qLabels.map((_, i) => i === s.qLabels.length - 1 ? violet : violetAlpha),
+            borderColor: violet,
+            borderWidth: 1,
+            borderRadius: 6,
+          }}]
+        }},
+        options: {{
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {{
+            legend: {{ display: false }},
+          }},
+          scales: {{
+            y: {{
+              beginAtZero: true,
+              grid: {{ color: tc.grid }},
+              ticks: {{ color: tc.text }},
+            }},
+            x: {{
+              grid: {{ display: false }},
+              ticks: {{ color: tc.text, maxRotation: 45 }},
+            }},
+          }},
+        }},
+      }});
+    }}
+  }}
+}}
+
+function presNav(dir) {{
+  _presSlide = Math.max(0, Math.min(PRES_TOTAL_SLIDES - 1, _presSlide + dir));
+  renderPresSlide();
+}}
 </script>
 </body>
 </html>"""
