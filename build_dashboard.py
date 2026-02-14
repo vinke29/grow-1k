@@ -2773,7 +2773,7 @@ function renderStrategicReport(mode, filterValue) {{
     html += `<div class="sr-section">
       <div class="sr-section-label">${{mode === 'sector' ? esc(scopeLabel) + ' Sector' : 'Market Overview'}}</div>
       <div class="sr-section-title">${{mode === 'sector'
-        ? esc(scopeLabel) + ' ${{uniqueCompanies.length > 1 ? "companies are" : "is"}} signaling AI ambition \u2014 but ${{substancePct <= 15 ? "almost none are" : "few are"}} delivering measurable outcomes'
+        ? esc(scopeLabel) + ': ${{uniqueCompanies.length}} companies are signaling AI ambition \u2014 but ${{substancePct <= 15 ? "almost none are" : "few are"}} delivering measurable outcomes'
         : 'AI rhetoric is exploding across the S&P 500, but substance remains scarce'}}</div>
       <div class="sr-big-stats">
         <div class="sr-big-stat"><span class="num">${{growthX}}x</span><span class="lbl">Mention Growth</span></div>
