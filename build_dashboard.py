@@ -1949,10 +1949,12 @@ def build_html(summary, quotes):
   <div id="tab-pres" class="tab-content">
     <div class="pres-container">
       <div class="pres-toolbar">
-        <select id="presFilter" onchange="renderPresSlide()">
+        <select id="presFilter" onchange="document.getElementById('presCompany').value=''; renderPresSlide();">
           <option value="All">All S&P 500</option>
           {sector_options_html}
         </select>
+        <input id="presCompany" type="text" list="presCompanyList" placeholder="Or filter by company..." style="background:var(--bg-card); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-size:0.85rem; width:200px;" oninput="onPresCompanyInput()">
+        <datalist id="presCompanyList"></datalist>
         <div class="pres-nav">
           <button onclick="presNav(-1)" id="presPrev" disabled>&larr; Prev</button>
           <span class="pres-counter" id="presCounter">1 / 1</span>
@@ -2035,7 +2037,7 @@ function switchTab(name) {{
   document.getElementById('tab-' + name).classList.add('active');
   document.querySelector('[onclick="switchTab(\\'' + name + '\\')"]').classList.add('active');
   if (name === 'data') renderTable();
-  if (name === 'pres') renderPresSlide();
+  if (name === 'pres') {{ _presPopulateCompanyList(); renderPresSlide(); }}
 }}
 
 // Chart instances
@@ -3303,17 +3305,43 @@ let _presSlide = 0;
 let _presChart = null;
 const PRES_TOTAL_SLIDES = 1; // will grow as we add slides
 
+function _presPopulateCompanyList() {{
+  const dl = document.getElementById('presCompanyList');
+  if (!dl) return;
+  const tickers = [...new Set(ALL_SUMMARY.map(r => r.company))].sort();
+  dl.innerHTML = tickers.map(t => `<option value="${{t}}">${{TICKER_NAMES[t] ? t + ' — ' + TICKER_NAMES[t] : t}}</option>`).join('');
+}}
+
+function onPresCompanyInput() {{
+  const val = (document.getElementById('presCompany')?.value || '').toUpperCase().trim();
+  if (val && ALL_SUMMARY.some(r => r.company === val)) {{
+    document.getElementById('presFilter').value = 'All';
+    renderPresSlide();
+  }} else if (val === '') {{
+    renderPresSlide();
+  }}
+}}
+
 function _presGetScope() {{
-  const filter = document.getElementById('presFilter')?.value || 'All';
-  let quotes, summary, label;
-  if (filter === 'All') {{
+  const companyVal = (document.getElementById('presCompany')?.value || '').toUpperCase().trim();
+  const sectorVal = document.getElementById('presFilter')?.value || 'All';
+  let quotes, summary, label, mode;
+
+  if (companyVal && ALL_SUMMARY.some(r => r.company === companyVal)) {{
+    quotes = ALL_QUOTES.filter(q => q.company === companyVal);
+    summary = ALL_SUMMARY.filter(r => r.company === companyVal);
+    label = TICKER_NAMES[companyVal] || companyVal;
+    mode = 'company';
+  }} else if (sectorVal !== 'All') {{
+    quotes = ALL_QUOTES.filter(q => q.sector === sectorVal);
+    summary = ALL_SUMMARY.filter(r => r.sector === sectorVal);
+    label = sectorVal;
+    mode = 'sector';
+  }} else {{
     quotes = ALL_QUOTES;
     summary = ALL_SUMMARY;
     label = 'S&P 500';
-  }} else {{
-    quotes = ALL_QUOTES.filter(q => q.sector === filter);
-    summary = ALL_SUMMARY.filter(r => r.sector === filter);
-    label = filter;
+    mode = 'all';
   }}
   const companies = [...new Set(quotes.map(q => q.company))];
   const nonVague = quotes.filter(q => q.categories !== 'Vague/Buzzword');
@@ -3333,7 +3361,7 @@ function _presGetScope() {{
   quotes.forEach(q => {{ if (q.role === 'Analyst') analyst++; else exec++; }});
   const execPct = (exec + analyst) > 0 ? Math.round(exec / (exec + analyst) * 100) : 0;
 
-  return {{ filter, label, quotes, summary, companies, nonVague, byQ, qLabels, qData, firstVal, lastVal, total, growthX, execPct }};
+  return {{ mode, label, quotes, summary, companies, nonVague, byQ, qLabels, qData, firstVal, lastVal, total, growthX, execPct }};
 }}
 
 function renderPresSlide() {{
@@ -3353,14 +3381,21 @@ function renderPresSlide() {{
     const firstQ = QUARTERS.find((q, i) => s.qData[i] > 0) || QUARTERS[0];
     const lastQ = QUARTERS[QUARTERS.length - 1];
 
+    const headline = s.mode === 'company'
+      ? `${{s.label}} mentioned AI in ${{s.total.toLocaleString()}} earnings call segments`
+      : `AI came up in ${{s.total.toLocaleString()}} earnings call segments across ${{s.companies.length}} ${{s.label}} companies`;
+    const subhead = s.mode === 'company'
+      ? `Each segment is one speaker's turn discussing AI. From ${{s.firstVal}} in ${{firstQ}} to ${{s.lastVal}} in ${{lastQ}}${{s.firstVal > 0 ? ' \u2014 a ' + s.growthX + 'x change.' : '.'}}`
+      : `Each segment is one speaker's turn discussing AI. From ${{s.firstVal}} mentions in ${{firstQ}} to ${{s.lastVal}} in ${{lastQ}} \u2014 a ${{s.growthX}}x increase.`;
+
     area.innerHTML = `<div class="pres-slide">
-      <div class="slide-kicker">Slide 1 &mdash; The Context</div>
-      <div class="slide-headline">AI came up in ${{s.total.toLocaleString()}} earnings call segments across ${{s.companies.length}} ${{s.label}} companies</div>
-      <div class="slide-subhead">Each segment is one speaker's turn discussing AI. From ${{s.firstVal}} mentions in ${{firstQ}} to ${{s.lastVal}} in ${{lastQ}} &mdash; a ${{s.growthX}}x increase in two years.</div>
+      <div class="slide-kicker">Slide 1 \u2014 The Context</div>
+      <div class="slide-headline">${{headline}}</div>
+      <div class="slide-subhead">${{subhead}}</div>
       <div class="slide-big-nums">
         <div class="big-num"><span class="val">${{s.total.toLocaleString()}}</span><span class="lbl">AI Segments</span></div>
         <div class="big-num"><span class="val">${{s.growthX}}x</span><span class="lbl">Growth</span></div>
-        <div class="big-num"><span class="val">${{s.companies.length}}</span><span class="lbl">Companies</span></div>
+        ${{s.mode !== 'company' ? `<div class="big-num"><span class="val">${{s.companies.length}}</span><span class="lbl">Companies</span></div>` : ''}}
         <div class="big-num"><span class="val">${{s.execPct}}%</span><span class="lbl">Exec-Driven</span></div>
       </div>
       <div class="pres-chart-wrap"><canvas id="presChart1"></canvas></div>
