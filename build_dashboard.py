@@ -193,8 +193,8 @@ SECTOR_MAP = {
     "Consumer Electronics": "Technology",
     "Electrical Components & Equipment": "Technology",
     # Banks
-    "Diversified Banks": "Banks",
-    "Regional Banks": "Banks",
+    "Diversified Banks": "Banking",
+    "Regional Banks": "Banking",
     # Insurance
     "Life & Health Insurance": "Insurance",
     "Multi-line Insurance": "Insurance",
@@ -812,7 +812,7 @@ def build_html(summary, quotes):
             if cat and cat != "Uncategorized" and cat != "Vague/Buzzword":
                 sector_cat_counts[r["Sector"]][cat] += 1
     sector_use_cases = []
-    for sector in ["Technology", "Banks", "Insurance", "Payments & Lending", "Asset Management & Capital Markets", "Healthcare", "Retail & Consumer", "Industrials"]:
+    for sector in ["Technology", "Banking", "Insurance", "Payments & Lending", "Asset Management & Capital Markets", "Healthcare", "Retail & Consumer", "Industrials"]:
         if sector in sector_cat_counts:
             cats = sector_cat_counts[sector]
             if cats:
@@ -1739,16 +1739,21 @@ def build_html(summary, quotes):
   </div>
 
   <div class="tabs">
-    <div class="tab active" onclick="switchTab('summary')">Key Insights</div>
-    <div class="tab" onclick="switchTab('charts')">Charts</div>
+    <div class="tab active" onclick="switchTab('pres')">Presentation</div>
     <div class="tab" onclick="switchTab('data')">Raw Data</div>
-    <div class="tab" onclick="switchTab('quotes')">Top Quotes</div>
-    <div class="tab" onclick="switchTab('stocks')">Stock vs AI</div>
-    <div class="tab" onclick="switchTab('pres')">Presentation</div>
+    <div style="position:relative; display:inline-block;">
+      <div class="tab" onclick="toggleArchived(event)" id="archivedTab">More <span style="font-size:0.7em;">\u25BC</span></div>
+      <div id="archivedDropdown" style="display:none; position:absolute; top:100%; left:0; z-index:100; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.15); min-width:160px; padding:4px 0; margin-top:4px;">
+        <div onclick="switchTab('summary')" style="padding:8px 16px; cursor:pointer; font-size:0.88rem; color:var(--text-secondary); transition:background 0.1s;" onmouseover="this.style.background='var(--bg-input)'" onmouseout="this.style.background='transparent'">Key Insights</div>
+        <div onclick="switchTab('charts')" style="padding:8px 16px; cursor:pointer; font-size:0.88rem; color:var(--text-secondary); transition:background 0.1s;" onmouseover="this.style.background='var(--bg-input)'" onmouseout="this.style.background='transparent'">Charts</div>
+        <div onclick="switchTab('quotes')" style="padding:8px 16px; cursor:pointer; font-size:0.88rem; color:var(--text-secondary); transition:background 0.1s;" onmouseover="this.style.background='var(--bg-input)'" onmouseout="this.style.background='transparent'">Top Quotes</div>
+        <div onclick="switchTab('stocks')" style="padding:8px 16px; cursor:pointer; font-size:0.88rem; color:var(--text-secondary); transition:background 0.1s;" onmouseover="this.style.background='var(--bg-input)'" onmouseout="this.style.background='transparent'">Stock vs AI</div>
+      </div>
+    </div>
   </div>
 
   <!-- KEY INSIGHTS TAB -->
-  <div id="tab-summary" class="tab-content active">
+  <div id="tab-summary" class="tab-content">
     <div id="sectorSelector" class="sector-selector">
       <select id="sectorDropdown" onchange="selectSector(this.value)">
         <option value="All">All Sectors</option>
@@ -1946,7 +1951,7 @@ def build_html(summary, quotes):
   </div>
 </div>
   <!-- PRESENTATION TAB -->
-  <div id="tab-pres" class="tab-content">
+  <div id="tab-pres" class="tab-content active">
     <div class="pres-container">
       <div class="pres-toolbar">
         <select id="presFilter" onchange="document.getElementById('presCompany').value=''; renderPresSlide();">
@@ -2031,11 +2036,32 @@ const limeAlpha = 'rgba(163, 217, 119, 0.2)';
 const fuchsia = '#c084fc';
 
 // Tabs
+function toggleArchived(e) {{
+  e.stopPropagation();
+  const dd = document.getElementById('archivedDropdown');
+  dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+}}
+document.addEventListener('click', function() {{
+  const dd = document.getElementById('archivedDropdown');
+  if (dd) dd.style.display = 'none';
+}});
+
+const ARCHIVED_TABS = ['summary', 'charts', 'quotes', 'stocks'];
+
 function switchTab(name) {{
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  document.querySelector('[onclick="switchTab(\\'' + name + '\\')"]').classList.add('active');
+  // Close archived dropdown
+  const dd = document.getElementById('archivedDropdown');
+  if (dd) dd.style.display = 'none';
+  // Highlight the right tab
+  if (ARCHIVED_TABS.includes(name)) {{
+    document.getElementById('archivedTab').classList.add('active');
+  }} else {{
+    const tabEl = document.querySelector('[onclick="switchTab(\\'' + name + '\\')"]');
+    if (tabEl) tabEl.classList.add('active');
+  }}
   if (name === 'data') renderTable();
   if (name === 'pres') {{ _presPopulateCompanyList(); renderPresSlide(); }}
 }}
@@ -3277,6 +3303,10 @@ function launchDashboard(name, ticker) {{
     document.getElementById('companySearch').value = ticker;
     onCompanyFilter();
   }}
+
+  // Init presentation tab (default)
+  _presPopulateCompanyList();
+  renderPresSlide();
 }}
 
 // Skip onboarding if returning user
@@ -3294,6 +3324,8 @@ function launchDashboard(name, ticker) {{
       document.getElementById('companySearch').value = data.ticker;
       onCompanyFilter();
     }}
+    _presPopulateCompanyList();
+    renderPresSlide();
     return;
   }}
 }})();
@@ -3303,7 +3335,7 @@ function launchDashboard(name, ticker) {{
 // ============================================================
 let _presSlide = 0;
 let _presChart = null;
-const PRES_TOTAL_SLIDES = 2;
+const PRES_TOTAL_SLIDES = 5;
 
 function _presPopulateCompanyList() {{
   const dl = document.getElementById('presCompanyList');
@@ -3381,7 +3413,47 @@ function _presGetScope() {{
   const lastExecPct = (execQData[lastActiveIdx] + analystQData[lastActiveIdx]) > 0
     ? Math.round(execQData[lastActiveIdx] / (execQData[lastActiveIdx] + analystQData[lastActiveIdx]) * 100) : 0;
 
-  return {{ mode, label, quotes, summary, companies, nonVague, byQ, qLabels, qData, firstVal, lastVal, total, growthX, execPct, analystPct, exec, analyst, execQData, analystQData, firstExecPct, lastExecPct }};
+  // Substance breakdown
+  const vague = quotes.filter(q => q.categories === 'Vague/Buzzword');
+  const highSig = nonVague.filter(q => q.significance === 'High');
+  const substancePct = nonVague.length > 0 ? Math.round(highSig.length / nonVague.length * 100) : 0;
+  // Per-quarter breakdown: vague / substantive-no-evidence / concrete
+  const vagueByQ = {{}}, substByQ = {{}}, concreteByQ = {{}};
+  quotes.forEach(q => {{
+    const qr = q.quarter;
+    if (q.categories === 'Vague/Buzzword') vagueByQ[qr] = (vagueByQ[qr] || 0) + 1;
+    else if (q.significance === 'High') concreteByQ[qr] = (concreteByQ[qr] || 0) + 1;
+    else substByQ[qr] = (substByQ[qr] || 0) + 1;
+  }});
+  const vagueQData = QUARTERS.map(q => vagueByQ[q] || 0);
+  const substQData = QUARTERS.map(q => substByQ[q] || 0);
+  const concreteQData = QUARTERS.map(q => concreteByQ[q] || 0);
+  // Example vague quotes for display
+  const vagueExamples = vague.slice(0, 3).map(q => q.quote ? q.quote.substring(0, 120) : '').filter(Boolean);
+  // Example concrete quotes
+  const concreteExamples = highSig.slice(0, 3).map(q => ({{ company: q.company, text: q.summary || (q.quote || '').substring(0, 150) }}));
+
+  // Use case aggregation (by subcategory, excluding generic/vague)
+  const useCaseCounts = {{}};
+  const useCaseHigh = {{}};
+  const useCaseExamples = {{}};
+  let classifiedCount = 0;
+  nonVague.forEach(q => {{
+    const sc = q.subcategory;
+    if (!sc || sc === 'Generic AI Mention') return;
+    classifiedCount++;
+    useCaseCounts[sc] = (useCaseCounts[sc] || 0) + 1;
+    if (q.significance === 'High') useCaseHigh[sc] = (useCaseHigh[sc] || 0) + 1;
+    if (!useCaseExamples[sc] || q.significance === 'High') {{
+      useCaseExamples[sc] = {{ company: q.company, text: q.summary || (q.quote || '').substring(0, 140) }};
+    }}
+  }});
+  const topUseCases = Object.entries(useCaseCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) => ({{ name, count, concrete: useCaseHigh[name] || 0, example: useCaseExamples[name] }}));
+
+  return {{ mode, label, quotes, summary, companies, nonVague, byQ, qLabels, qData, firstVal, lastVal, total, growthX, execPct, analystPct, exec, analyst, execQData, analystQData, firstExecPct, lastExecPct, vague, highSig, substancePct, vagueQData, substQData, concreteQData, vagueExamples, concreteExamples, topUseCases, classifiedCount }};
 }}
 
 function renderPresSlide() {{
@@ -3400,23 +3472,74 @@ function renderPresSlide() {{
     // SLIDE 1: The Context
     const firstQ = QUARTERS.find((q, i) => s.qData[i] > 0) || QUARTERS[0];
     const lastQ = QUARTERS[QUARTERS.length - 1];
+    const growthNum = parseFloat(s.growthX);
 
-    const headline = s.mode === 'company'
-      ? `${{s.label}} mentioned AI in ${{s.total.toLocaleString()}} earnings call segments`
-      : `AI came up in ${{s.total.toLocaleString()}} earnings call segments across ${{s.companies.length}} ${{s.label}} companies`;
-    const subhead = s.mode === 'company'
-      ? `Each segment is one speaker's turn discussing AI. From ${{s.firstVal}} in ${{firstQ}} to ${{s.lastVal}} in ${{lastQ}}${{s.firstVal > 0 ? ' \u2014 a ' + s.growthX + 'x change.' : '.'}}`
-      : `Each segment is one speaker's turn discussing AI. From ${{s.firstVal}} mentions in ${{firstQ}} to ${{s.lastVal}} in ${{lastQ}} \u2014 a ${{s.growthX}}x increase.`;
+    // Headline = insight / interpretation
+    let headline;
+    if (s.mode === 'company') {{
+      if (s.total <= 3) {{
+        headline = `${{s.label}} has barely mentioned AI on earnings calls`;
+      }} else if (growthNum >= 3) {{
+        headline = `AI has become a central theme in ${{s.label}}\u2019s earnings narrative`;
+      }} else if (growthNum >= 1.5) {{
+        headline = `${{s.label}} is steadily increasing its AI focus on earnings calls`;
+      }} else if (s.lastVal < s.firstVal) {{
+        headline = `${{s.label}}\u2019s AI mentions are declining \u2014 fading priority or mission accomplished?`;
+      }} else {{
+        headline = `${{s.label}} mentions AI consistently, but the conversation isn\u2019t accelerating`;
+      }}
+    }} else {{
+      if (growthNum >= 5) {{
+        headline = `AI has moved from occasional mention to default narrative across ${{s.label}} earnings calls`;
+      }} else if (growthNum >= 2) {{
+        headline = `AI discussion is accelerating across ${{s.label}} \u2014 ${{s.growthX}}\u00D7 more mentions in under 3 years`;
+      }} else if (growthNum >= 1.2) {{
+        headline = `AI mentions are growing steadily across ${{s.label}}, but not yet exploding`;
+      }} else if (s.lastVal < s.firstVal) {{
+        headline = `AI mentions across ${{s.label}} are actually declining \u2014 peak hype may have passed`;
+      }} else {{
+        headline = `AI is a consistent presence across ${{s.label}} earnings calls, but growth has plateaued`;
+      }}
+    }}
+
+    // Subhead = the descriptive facts
+    let bodyHtml;
+    if (s.mode === 'company') {{
+      bodyHtml = `<div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 <strong>${{s.total}}</strong> AI-related segments on earnings calls</div>
+        <div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 Mentions went from ${{s.firstVal}} (${{firstQ}}) \u2192 ${{s.lastVal}} (${{lastQ}})</div>
+        ${{s.firstVal > 0 ? `<div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 <strong>${{s.growthX}}\u00D7</strong> change over the period</div>` : ''}}`;
+    }} else {{
+      bodyHtml = `<div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 <strong>${{s.total.toLocaleString()}}</strong> AI-related segments across <strong>${{s.companies.length}}</strong> ${{s.label}} companies</div>
+        <div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 Mentions grew from ${{s.firstVal}} (${{firstQ}}) \u2192 ${{s.lastVal}} (${{lastQ}})</div>
+        ${{s.firstVal > 0 ? `<div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 <strong>${{s.growthX}}\u00D7</strong> increase in under 3 years</div>` : ''}}`;
+    }}
+
+    // Framing line = editorial interpretation
+    let framing = '';
+    if (growthNum >= 5) {{
+      framing = s.mode === 'company'
+        ? `AI is no longer a side topic for ${{s.label}} \u2014 it\u2019s woven into how the company presents itself to investors.`
+        : `AI is no longer experimental language \u2014 it\u2019s table-stakes signaling across ${{s.label}}.`;
+    }} else if (growthNum >= 2) {{
+      framing = s.mode === 'company'
+        ? `${{s.label}} is clearly leaning into AI as a strategic talking point, though the pace is still building.`
+        : `The trend is clear: ${{s.label}} companies feel compelled to talk about AI. The question is whether the substance matches the volume.`;
+    }} else if (s.total > 10) {{
+      framing = s.mode === 'company'
+        ? `${{s.label}} mentions AI regularly, but the flat trajectory suggests it hasn\u2019t become a bigger strategic priority over time.`
+        : `${{s.label}} companies mention AI, but the growth has leveled off \u2014 early enthusiasm may be giving way to pragmatism.`;
+    }} else {{
+      framing = s.mode === 'company'
+        ? `AI remains a minor topic in ${{s.label}}\u2019s earnings calls.`
+        : `AI hasn\u2019t yet become a major theme across ${{s.label}}.`;
+    }}
 
     area.innerHTML = `<div class="pres-slide">
-      <div class="slide-kicker">Slide 1 \u2014 The Context</div>
+      <div class="slide-kicker">The Context</div>
       <div class="slide-headline">${{headline}}</div>
-      <div class="slide-subhead">${{subhead}}</div>
-      <div class="slide-big-nums">
-        <div class="big-num"><span class="val">${{s.total.toLocaleString()}}</span><span class="lbl">AI Segments</span></div>
-        <div class="big-num"><span class="val">${{s.growthX}}x</span><span class="lbl">Growth</span></div>
-        ${{s.mode !== 'company' ? `<div class="big-num"><span class="val">${{s.companies.length}}</span><span class="lbl">Companies</span></div>` : ''}}
-        <div class="big-num"><span class="val">${{s.execPct}}%</span><span class="lbl">Exec-Driven</span></div>
+      <div style="margin:14px 0 4px;">${{bodyHtml}}</div>
+      <div style="margin:16px 0 0; padding:12px 16px; border-left:3px solid var(--accent); font-size:0.9rem; color:var(--text); font-style:italic; background:var(--bg-card); border-radius:0 8px 8px 0;">
+        ${{framing}}
       </div>
       <div class="pres-chart-wrap"><canvas id="presChart1"></canvas></div>
     </div>`;
@@ -3462,41 +3585,62 @@ function renderPresSlide() {{
   }} else if (_presSlide === 1) {{
     // SLIDE 2: Who Is Driving the Narrative?
     const execTrend = s.lastExecPct - s.firstExecPct;
-    const trendDir = execTrend > 5 ? 'increasingly' : execTrend < -5 ? 'decreasingly' : 'consistently';
+    const trendWord = execTrend > 5 ? 'increasingly' : execTrend < -5 ? 'less and less' : 'consistently';
 
-    let headline, subhead;
-    if (s.execPct >= 70) {{
-      headline = s.mode === 'company'
-        ? `${{s.label}}'s leadership is proactively shaping the AI narrative`
-        : `${{s.execPct}}% of AI mentions come from executives \u2014 leadership is driving the story`;
-      subhead = s.mode === 'company'
-        ? `${{s.execPct}}% of AI mentions are executive-driven, not responses to analyst questions. ${{s.label}} is ${{trendDir}} framing AI as a strategic priority.`
-        : `Across ${{s.label}}, executives are ${{trendDir}} bringing up AI unprompted. This isn\u2019t analysts fishing for answers \u2014 it\u2019s leadership signaling strategic intent.`;
-    }} else if (s.execPct >= 40) {{
-      headline = s.mode === 'company'
-        ? `${{s.label}}'s AI conversation is split between executives and analysts`
-        : `AI discussion is balanced \u2014 ${{s.execPct}}% executive, ${{s.analystPct}}% analyst`;
-      subhead = s.mode === 'company'
-        ? `AI comes up from both sides: executives volunteering updates and analysts pressing for details. Neither side fully owns the narrative yet.`
-        : `Neither executives nor analysts dominate the AI conversation. Executives are engaging, but analysts are ${{trendDir}} pushing for specifics.`;
+    // Headline = insight
+    let headline;
+    if (s.mode === 'company') {{
+      if (s.execPct >= 70) {{
+        headline = `${{s.label}}\u2019s AI narrative is leadership-led \u2014 not analyst-driven curiosity`;
+      }} else if (s.execPct >= 40) {{
+        headline = `${{s.label}}\u2019s AI conversation is a two-way street between executives and analysts`;
+      }} else {{
+        headline = `Analysts are driving ${{s.label}}\u2019s AI conversation \u2014 leadership is mostly reacting`;
+      }}
     }} else {{
-      headline = s.mode === 'company'
-        ? `Analysts are driving ${{s.label}}'s AI conversation \u2014 not executives`
-        : `${{s.analystPct}}% of AI mentions are analyst-driven \u2014 executives are reactive`;
-      subhead = s.mode === 'company'
-        ? `Only ${{s.execPct}}% of AI mentions come from ${{s.label}}'s leadership. Analysts are asking the questions, suggesting the company hasn\u2019t made AI a top-of-mind executive priority.`
-        : `Analysts are doing the heavy lifting on AI discussion. Executives are responding, not leading \u2014 a sign that AI may not yet be a genuine strategic priority.`;
+      if (s.execPct >= 70) {{
+        headline = `AI is a leadership-led narrative across ${{s.label}} \u2014 not analyst-driven curiosity`;
+      }} else if (s.execPct >= 40) {{
+        headline = `The AI conversation across ${{s.label}} is shared ground \u2014 executives and analysts both driving it`;
+      }} else {{
+        headline = `Analysts are pushing the AI agenda across ${{s.label}} \u2014 executives aren\u2019t leading`;
+      }}
+    }}
+
+    // Subhead = descriptive facts as bullets
+    let bodyHtml;
+    if (s.mode === 'company') {{
+      bodyHtml = `<div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 <strong>${{s.execPct}}%</strong> of mentions come from executives (${{s.exec}} of ${{s.total}})</div>
+        <div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 <strong>${{s.analystPct}}%</strong> prompted by analysts (${{s.analyst}} of ${{s.total}})</div>
+        <div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 Executives ${{trendWord}} introduce AI unprompted over the period</div>`;
+    }} else {{
+      bodyHtml = `<div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 <strong>${{s.execPct}}%</strong> of mentions come from executives (${{s.exec.toLocaleString()}} of ${{s.total.toLocaleString()}})</div>
+        <div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 Only <strong>${{s.analystPct}}%</strong> prompted by analysts (${{s.analyst.toLocaleString()}})</div>
+        <div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 Executives ${{trendWord}} introduce AI unprompted across ${{s.label}}</div>`;
+    }}
+
+    // Punchline = the so-what
+    let punchline;
+    if (s.execPct >= 70) {{
+      punchline = s.mode === 'company'
+        ? `${{s.label}} is using AI as a strategic signal to investors, not just answering pressure.`
+        : `${{s.label}} companies are using AI as a strategic signal, not just answering investor pressure.`;
+    }} else if (s.execPct >= 40) {{
+      punchline = s.mode === 'company'
+        ? `AI is on ${{s.label}}\u2019s radar, but the conversation is still partly reactive \u2014 analysts are pushing as much as leadership is volunteering.`
+        : `AI is on the agenda, but ${{s.label}} leadership hasn\u2019t fully seized it \u2014 analysts are driving nearly as much of the discussion.`;
+    }} else {{
+      punchline = s.mode === 'company'
+        ? `${{s.label}}\u2019s AI story is being told by analysts, not leadership. That\u2019s a signal it hasn\u2019t become a genuine executive priority.`
+        : `When analysts drive the AI conversation, it suggests ${{s.label}} leadership hasn\u2019t made AI a top strategic priority \u2014 they\u2019re responding to the market, not leading it.`;
     }}
 
     area.innerHTML = `<div class="pres-slide">
-      <div class="slide-kicker">Slide 2 \u2014 Who Drives the Narrative?</div>
+      <div class="slide-kicker">Who Drives the Narrative?</div>
       <div class="slide-headline">${{headline}}</div>
-      <div class="slide-subhead">${{subhead}}</div>
-      <div class="slide-big-nums">
-        <div class="big-num"><span class="val">${{s.execPct}}%</span><span class="lbl">Executive-Driven</span></div>
-        <div class="big-num"><span class="val">${{s.analystPct}}%</span><span class="lbl">Analyst-Driven</span></div>
-        <div class="big-num"><span class="val">${{s.exec.toLocaleString()}}</span><span class="lbl">Exec Mentions</span></div>
-        <div class="big-num"><span class="val">${{s.analyst.toLocaleString()}}</span><span class="lbl">Analyst Mentions</span></div>
+      <div style="margin:14px 0 4px;">${{bodyHtml}}</div>
+      <div style="margin:16px 0 0; padding:12px 16px; border-left:3px solid var(--accent); font-size:0.9rem; color:var(--text); font-style:italic; background:var(--bg-card); border-radius:0 8px 8px 0;">
+        ${{punchline}}
       </div>
       <div class="pres-chart-wrap"><canvas id="presChart2"></canvas></div>
     </div>`;
@@ -3552,7 +3696,360 @@ function renderPresSlide() {{
         }},
       }});
     }}
+
+  }} else if (_presSlide === 2) {{
+    // SLIDE 3: Substance vs Hype
+    const totalSegs = s.total;
+    const vagueCount = s.vague.length;
+    const substantiveCount = s.nonVague.length;
+    const concreteCount = s.highSig.length;
+    const softCount = substantiveCount - concreteCount;
+    const concretePct = s.substancePct;
+
+    // Headline = insight
+    let headline;
+    if (concretePct <= 10) {{
+      headline = s.mode === 'company'
+        ? `${{s.label}} talks about AI a lot \u2014 but almost none of it is backed by evidence`
+        : `AI is everywhere in ${{s.label}} earnings language \u2014 but rarely backed by numbers`;
+    }} else if (concretePct <= 25) {{
+      headline = s.mode === 'company'
+        ? `${{s.label}} is starting to show receipts \u2014 but most AI talk remains aspirational`
+        : `Some ${{s.label}} companies are showing evidence, but most AI talk is still directional`;
+    }} else {{
+      headline = s.mode === 'company'
+        ? `${{s.label}} backs its AI claims with real evidence \u2014 an outlier on substance`
+        : `${{s.label}} is building real substance behind AI claims \u2014 ${{concretePct}}% cite concrete outcomes`;
+    }}
+
+    // Body = bullets with the breakdown
+    let bodyHtml;
+    if (s.mode === 'company') {{
+      bodyHtml = `<div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 Of <strong>${{totalSegs}}</strong> AI segments, <strong>${{vagueCount}}</strong> were pure buzzwords</div>
+        <div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 <strong>${{softCount}}</strong> were directional but cited no specific evidence</div>
+        <div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 Only <strong>${{concreteCount}}</strong> (${{concretePct}}%) cited named products, dollar figures, or measurable outcomes</div>`;
+    }} else {{
+      bodyHtml = `<div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 Of <strong>${{totalSegs.toLocaleString()}}</strong> AI segments across ${{s.companies.length}} companies, <strong>${{vagueCount}}</strong> were pure buzzwords</div>
+        <div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 <strong>${{softCount}}</strong> were directional but cited no specific evidence</div>
+        <div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 Only <strong>${{concreteCount}}</strong> (${{concretePct}}%) included named products, dollar figures, or measurable outcomes</div>`;
+    }}
+
+    // Punchline
+    let punchline;
+    if (concretePct <= 10) {{
+      punchline = s.mode === 'company'
+        ? `${{s.label}} is signaling AI intent, but the gap between rhetoric and proof is wide. Investors should ask: where are the numbers?`
+        : `The vast majority of AI discussion across ${{s.label}} is aspiration, not evidence. The substance gap is the real story.`;
+    }} else if (concretePct <= 25) {{
+      punchline = s.mode === 'company'
+        ? `${{s.label}} is ahead of most peers on substance, but the majority of AI talk still lacks hard evidence.`
+        : `Progress is emerging, but ${{100 - concretePct}}% of AI mentions still lack concrete proof. The gap between talk and evidence remains wide.`;
+    }} else {{
+      punchline = s.mode === 'company'
+        ? `${{s.label}} is one of the few companies moving from AI narrative to AI proof. That\u2019s a meaningful differentiator.`
+        : `${{s.label}} is moving from narrative to proof \u2014 a sign that AI adoption may be maturing past the hype phase.`;
+    }}
+
+    area.innerHTML = `<div class="pres-slide">
+      <div class="slide-kicker">Substance vs. Hype</div>
+      <div class="slide-headline">${{headline}}</div>
+      <div style="margin:14px 0 4px;">${{bodyHtml}}</div>
+      <div style="margin:16px 0 0; padding:12px 16px; border-left:3px solid var(--accent); font-size:0.9rem; color:var(--text); font-style:italic; background:var(--bg-card); border-radius:0 8px 8px 0;">
+        ${{punchline}}
+      </div>
+      <div class="pres-chart-wrap"><canvas id="presChart3"></canvas></div>
+    </div>`;
+
+    const ctx = document.getElementById('presChart3');
+    if (ctx) {{
+      const tc = getThemeColors();
+      _presChart = new Chart(ctx, {{
+        type: 'bar',
+        data: {{
+          labels: s.qLabels,
+          datasets: [
+            {{
+              label: 'Concrete Evidence',
+              data: s.concreteQData,
+              backgroundColor: '#48bb78',
+              borderRadius: 4,
+              borderSkipped: false,
+            }},
+            {{
+              label: 'Directional (no evidence)',
+              data: s.substQData,
+              backgroundColor: violetAlpha,
+              borderColor: violet,
+              borderWidth: 1,
+              borderRadius: 4,
+              borderSkipped: false,
+            }},
+            {{
+              label: 'Buzzword-Only',
+              data: s.vagueQData,
+              backgroundColor: 'rgba(160,160,160,0.15)',
+              borderColor: 'rgba(160,160,160,0.4)',
+              borderWidth: 1,
+              borderRadius: 4,
+              borderSkipped: false,
+            }},
+          ]
+        }},
+        options: {{
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {{
+            legend: {{
+              labels: {{ color: tc.text, usePointStyle: true, pointStyle: 'rectRounded', padding: 16 }},
+              position: 'top',
+            }},
+          }},
+          scales: {{
+            y: {{
+              beginAtZero: true,
+              stacked: true,
+              grid: {{ color: tc.grid }},
+              ticks: {{ color: tc.text }},
+            }},
+            x: {{
+              stacked: true,
+              grid: {{ display: false }},
+              ticks: {{ color: tc.text, maxRotation: 45 }},
+            }},
+          }},
+        }},
+      }});
+    }}
+
+  }} else if (_presSlide === 3) {{
+    // SLIDE 4: What They're Actually Using AI For
+    // Picks up from Slide 3's framework:
+    //   s.total = all segments, s.vague = buzzword-only,
+    //   s.nonVague = directional + concrete, s.highSig = concrete evidence
+    // Of nonVague, some name a specific use case (classifiedCount), the rest are general AI talk
+    const uc = s.topUseCases;
+    const ucCount = uc.length;
+    const nonBuzzword = s.nonVague.length;   // same number Slide 3 shows as directional + concrete
+    const classified = s.classifiedCount;     // how many of those name a specific use case
+    const general = nonBuzzword - classified; // mentioned AI topically but no specific use case
+    const topName = ucCount > 0 ? uc[0].name : '';
+
+    // Headline = insight
+    let headline;
+    if (ucCount === 0) {{
+      headline = s.mode === 'company'
+        ? `${{s.label}} hasn\u2019t named specific AI use cases yet`
+        : `No specific AI use cases identified across ${{s.label}}`;
+    }} else if (s.mode === 'company') {{
+      headline = ucCount === 1
+        ? `${{s.label}}\u2019s AI focus is singular: ${{topName}}`
+        : `${{s.label}}\u2019s top AI bet is ${{topName}}`;
+    }} else {{
+      headline = `${{topName}} leads the AI conversation across ${{s.label}}`;
+    }}
+
+    // Body = bullets linking back to Slide 3's numbers
+    let bodyHtml;
+    if (ucCount === 0) {{
+      bodyHtml = `<div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 Of the <strong>${{nonBuzzword}}</strong> non-buzzword mentions, none name a specific use case</div>
+        <div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 The conversation remains high-level without pointing to particular applications</div>`;
+    }} else {{
+      bodyHtml = `<div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 Of the <strong>${{nonBuzzword}}</strong> non-buzzword mentions, <strong>${{classified}}</strong> name a specific use case</div>
+        ${{general > 0 ? `<div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 The other <strong>${{general}}</strong> discuss AI generally without naming an application</div>` : ''}}
+        <div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 The top ${{ucCount}} use cases and their mention counts are below</div>`;
+    }}
+
+    // Punchline
+    let punchline;
+    const totalConcrete = uc.reduce((sum, u) => sum + u.concrete, 0);
+    if (ucCount === 0) {{
+      punchline = s.mode === 'company'
+        ? `Without named use cases, it\u2019s hard to assess where ${{s.label}} is actually deploying AI.`
+        : `${{s.label}} companies are talking about AI, but not yet specifying where they\u2019re applying it.`;
+    }} else if (totalConcrete === 0) {{
+      punchline = s.mode === 'company'
+        ? `${{s.label}} is naming use cases, but none are backed by concrete evidence yet. The question for investors: are these plans or results?`
+        : `Companies are naming where they want to use AI, but none of the top use cases are backed by hard evidence yet.`;
+    }} else {{
+      punchline = s.mode === 'company'
+        ? `${{totalConcrete}} of these use case mentions cite concrete evidence \u2014 ${{s.label}} is starting to prove results, not just state intentions.`
+        : `${{totalConcrete}} of these use case mentions cite concrete evidence. The rest remain directional \u2014 companies naming the area but not yet proving results.`;
+    }}
+
+    // Build use case cards — click to expand inline quotes
+    const ucColors = ['#7c3aed', '#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd'];
+    // Pre-build scoped quotes per use case for the dropdown
+    const ucQuotesMap = {{}};
+    uc.forEach(u => {{
+      const sigOrder = {{'High': 3, 'Medium': 2, 'Low': 1}};
+      ucQuotesMap[u.name] = s.nonVague
+        .filter(q => q.subcategory === u.name)
+        .sort((a, b) => (sigOrder[b.significance] || 0) - (sigOrder[a.significance] || 0))
+        .slice(0, 5)
+        .map(q => {{
+          const sig = q.significance;
+          const sigDot = sig === 'High' ? '#48bb78' : sig === 'Medium' ? 'var(--accent)' : 'var(--text-muted)';
+          const coName = TICKER_NAMES[q.company] || q.company;
+          const text = q.summary || (q.quote || '').substring(0, 150);
+          return `<div style="padding:10px 0; border-bottom:1px solid var(--border);">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+              <span style="width:8px; height:8px; border-radius:50%; background:${{sigDot}}; display:inline-block;"></span>
+              <span style="font-size:0.78rem; font-weight:600; color:var(--text);">${{coName}}</span>
+              <span style="font-size:0.72rem; color:var(--text-muted);">${{q.quarter}}</span>
+              <span style="font-size:0.68rem; color:var(--text-muted); margin-left:auto;">${{q.role === 'Analyst' ? 'Analyst' : 'Executive'}}</span>
+            </div>
+            <div style="font-size:0.82rem; color:var(--text-secondary); line-height:1.4;">${{text}}</div>
+          </div>`;
+        }}).join('');
+    }});
+
+    const ucCardsHtml = uc.map((u, i) => {{
+      const concreteTag = u.concrete > 0
+        ? `<span style="font-size:0.72rem; background:#48bb7822; color:#48bb78; padding:2px 7px; border-radius:4px; margin-left:8px;">${{u.concrete}} with evidence</span>`
+        : `<span style="font-size:0.72rem; background:rgba(160,160,160,0.12); color:var(--text-muted); padding:2px 7px; border-radius:4px; margin-left:8px;">no evidence yet</span>`;
+      const quotesHtml = ucQuotesMap[u.name] || '';
+      return `<div>
+        <div onclick="_presToggleUC('presUC${{i}}')" style="display:flex; align-items:flex-start; gap:14px; padding:14px 0; cursor:pointer; border-radius:8px; transition:background 0.15s; ${{i < uc.length - 1 ? 'border-bottom:1px solid var(--border);' : ''}}" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
+          <div style="min-width:36px; height:36px; border-radius:8px; background:${{ucColors[i]}}22; color:${{ucColors[i]}}; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1.1rem;">${{i + 1}}</div>
+          <div style="flex:1;">
+            <div style="font-weight:600; font-size:1rem; color:var(--text);">${{u.name}}${{concreteTag}}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="font-size:1.5rem; font-weight:700; color:${{ucColors[i]}};">${{u.count}}</div>
+            <div id="presUCArrow${{i}}" style="color:var(--text-muted); font-size:0.9rem; transition:transform 0.2s;">\u25BC</div>
+          </div>
+        </div>
+        <div id="presUC${{i}}" style="display:none; padding:4px 0 14px 50px; ${{i < uc.length - 1 ? 'border-bottom:1px solid var(--border);' : ''}}">
+          ${{quotesHtml || '<div style="font-size:0.85rem; color:var(--text-muted); padding:8px 0;">No quotes available</div>'}}
+        </div>
+      </div>`;
+    }}).join('');
+
+    area.innerHTML = `<div class="pres-slide">
+      <div class="slide-kicker">What They\u2019re Actually Using AI For</div>
+      <div class="slide-headline">${{headline}}</div>
+      <div style="margin:14px 0 4px;">${{bodyHtml}}</div>
+      <div style="margin:16px 0 0; padding:12px 16px; border-left:3px solid var(--accent); font-size:0.9rem; color:var(--text); font-style:italic; background:var(--bg-card); border-radius:0 8px 8px 0;">
+        ${{punchline}}
+      </div>
+      <div style="margin-top:12px;">${{ucCardsHtml}}</div>
+    </div>`;
+
+  }} else if (_presSlide === 4) {{
+    // SLIDE 5: What This Signals
+    const concretePct = s.substancePct;
+    const growthNum = parseFloat(s.growthX);
+
+    // Determine if use cases are mostly internal/productivity vs customer-facing
+    const uc = s.topUseCases;
+    const internalKw = ['code', 'operat', 'efficien', 'cost', 'process', 'fraud', 'risk', 'underwriting', 'document', 'internal', 'supply', 'automat'];
+    const externalKw = ['customer', 'revenue', 'experience', 'personali', 'marketing', 'product', 'sales', 'recommend', 'advertis'];
+    let intCount = 0, extCount = 0;
+    uc.forEach(u => {{
+      const lc = u.name.toLowerCase();
+      if (externalKw.some(k => lc.includes(k))) extCount++;
+      else intCount++;
+    }});
+    const mostlyInternal = intCount > extCount;
+
+    // Build adaptive signal bullets
+    const signals = [];
+
+    // Signal 1: Volume
+    if (growthNum >= 3) {{
+      signals.push(`AI is now expected language in ${{s.mode === 'company' ? s.label + '\u2019s' : s.label}} earnings calls \u2014 not optional`);
+    }} else if (growthNum >= 1.5) {{
+      signals.push(`AI mentions are growing but haven\u2019t yet become mandatory ${{s.mode === 'company' ? 'for ' + s.label : 'across ' + s.label}}`);
+    }} else {{
+      signals.push(`AI remains a modest topic ${{s.mode === 'company' ? 'for ' + s.label : 'across ' + s.label}} \u2014 not yet a dominant narrative`);
+    }}
+
+    // Signal 2: Who drives it
+    if (s.execPct >= 70) {{
+      signals.push(`Executives are leading the narrative (${{s.execPct}}% of mentions) \u2014 this is top-down signaling`);
+    }} else if (s.execPct >= 40) {{
+      signals.push(`The narrative is shared between executives (${{s.execPct}}%) and analysts (${{s.analystPct}}%) \u2014 neither side fully owns it`);
+    }} else {{
+      signals.push(`Analysts drive most AI discussion (${{s.analystPct}}%) \u2014 leadership is reactive, not proactive`);
+    }}
+
+    // Signal 3: Substance
+    if (concretePct <= 10) {{
+      signals.push(`Concrete evidence is still rare \u2014 only ${{concretePct}}% of non-buzzword mentions cite specifics`);
+    }} else if (concretePct <= 25) {{
+      signals.push(`Some substance is emerging (${{concretePct}}%), but the majority of AI talk still lacks hard evidence`);
+    }} else {{
+      signals.push(`Substance is real \u2014 ${{concretePct}}% of non-buzzword mentions cite named products or measurable outcomes`);
+    }}
+
+    // Signal 4: Use case nature
+    if (uc.length > 0) {{
+      if (mostlyInternal) {{
+        signals.push(`Most deployments focus on internal productivity and efficiency \u2014 not customer-facing innovation`);
+      }} else if (extCount > intCount) {{
+        signals.push(`Use cases skew toward customer-facing applications \u2014 ${{s.mode === 'company' ? s.label + ' is' : 'companies are'}} betting on AI as a growth lever`);
+      }} else {{
+        signals.push(`Use cases span both internal efficiency and customer-facing applications`);
+      }}
+    }}
+
+    // Signal 5: Forward look
+    if (concretePct <= 15 && mostlyInternal) {{
+      signals.push(`Customer-facing and revenue impact from AI is still emerging`);
+    }} else if (concretePct > 15) {{
+      signals.push(`Early signs of measurable impact are appearing \u2014 the next phase will test whether they scale`);
+    }}
+
+    const signalsHtml = signals.map(s => `<div style="font-size:0.95rem; color:var(--text-secondary); padding:4px 0;">\u2022 ${{s}}</div>`).join('');
+
+    // Headline
+    let headline;
+    if (concretePct <= 10) {{
+      headline = s.mode === 'company'
+        ? `${{s.label}} is in the signaling phase \u2014 AI is strategic intent, not proven impact`
+        : `${{s.label}} is in Phase 1: signaling and internal enablement`;
+    }} else if (concretePct <= 25) {{
+      headline = s.mode === 'company'
+        ? `${{s.label}} is transitioning from AI talk to early proof points`
+        : `${{s.label}} is between Phase 1 and Phase 2 \u2014 signals are turning into early evidence`;
+    }} else {{
+      headline = s.mode === 'company'
+        ? `${{s.label}} is entering Phase 2 \u2014 measurable AI impact is emerging`
+        : `${{s.label}} is moving into Phase 2: measurable impact is starting to surface`;
+    }}
+
+    // Punchline — forward-looking
+    let punchline;
+    if (concretePct <= 15) {{
+      punchline = s.mode === 'company'
+        ? `We\u2019re in Phase 1: signaling and internal enablement. Phase 2 \u2014 measurable revenue and cost impact \u2014 is the test that ${{s.label}} hasn\u2019t passed yet.`
+        : `We\u2019re in Phase 1: signaling and internal enablement. Phase 2 will be measurable revenue and cost impact \u2014 and most of ${{s.label}} isn\u2019t there yet.`;
+    }} else {{
+      punchline = s.mode === 'company'
+        ? `${{s.label}} is moving past Phase 1 signaling into Phase 2: proving measurable impact. The next question is whether it scales.`
+        : `The leaders in ${{s.label}} are crossing from Phase 1 (signaling) into Phase 2 (proving impact). The laggards are still talking. The gap will widen.`;
+    }}
+
+    area.innerHTML = `<div class="pres-slide">
+      <div class="slide-kicker">What This Signals</div>
+      <div class="slide-headline">${{headline}}</div>
+      <div style="margin:14px 0 4px;">${{signalsHtml}}</div>
+      <div style="margin:16px 0 0; padding:12px 16px; border-left:3px solid var(--accent); font-size:0.9rem; color:var(--text); font-style:italic; background:var(--bg-card); border-radius:0 8px 8px 0;">
+        ${{punchline}}
+      </div>
+    </div>`;
   }}
+}}
+
+function _presToggleUC(id) {{
+  const el = document.getElementById(id);
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  // Rotate arrow
+  const arrowId = id.replace('presUC', 'presUCArrow');
+  const arrow = document.getElementById(arrowId);
+  if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
 }}
 
 function presNav(dir) {{
