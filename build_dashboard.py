@@ -2567,114 +2567,79 @@ function closeQuoteDrillDown() {{
 
 // --- McKinsey Strategic Report (All / Sector / Company views) ---
 
-// Track current report scope for scoped interactions
 let _srCurrentMode = 'all';
 let _srCurrentFilter = null;
 
-// Advanced subcats indicate higher AI maturity
-const ADVANCED_SUBCATS = ['Agentic Workflows', 'Revenue Growth', 'AI Product Development', 'Customer Experience Enhancement', 'Medical Imaging'];
+// Macro buckets — consolidate fragmented subcategories
+function _getMacroBucket(sc) {{
+  const s = (sc || '').toLowerCase();
+  if (/cost|efficien|automat|code gen|process|supply chain|productiv|streamlin|internal|operat/.test(s)) return 'Efficiency & Cost Reduction';
+  if (/fraud|cyber|risk|compliance|security|monitor|regulat/.test(s)) return 'Risk & Compliance';
+  if (/customer|revenue|service|search|recommend|advertis|copilot|assistant|personali|experience|cx/.test(s)) return 'Customer & Revenue';
+  if (/agent|product dev|medical|data util|transform|imaging/.test(s)) return 'Transformation & New Models';
+  return 'Other';
+}}
 
-function _scoreCompanyMaturity(ticker, quotes) {{
-  const cq = quotes.filter(q => q.company === ticker && q.categories !== 'Vague/Buzzword');
-  if (cq.length === 0) return null;
+// 4-stage maturity model
+const STAGE_DEFS = [
+  {{ stage: 1, label: 'Signaling', color: '#ef4444', desc: 'Buzzwords and aspiration. No concrete evidence of deployment.' }},
+  {{ stage: 2, label: 'Productivity AI', color: '#f4a261', desc: 'Internal tools: code gen, copilots, process automation. Some evidence.' }},
+  {{ stage: 3, label: 'Enterprise Integration', color: '#7c6aef', desc: 'Workflow redesign, multiple AI domains, moderate substance.' }},
+  {{ stage: 4, label: 'AI-Driven Model', color: '#48bb78', desc: 'Revenue products, measurable outcomes, high substance rate.' }},
+];
+
+function _classifyStage(ticker, quotes) {{
+  const all = quotes.filter(q => q.company === ticker);
+  const cq = all.filter(q => q.categories !== 'Vague/Buzzword');
+  if (all.length === 0) return null;
   const high = cq.filter(q => q.significance === 'High').length;
+  const substanceRate = cq.length > 0 ? high / cq.length : 0;
   const subcats = new Set(cq.map(q => q.subcategory).filter(Boolean));
-  const advanced = cq.filter(q => ADVANCED_SUBCATS.includes(q.subcategory)).length;
-  const volume = cq.length;
-  const substanceRate = volume > 0 ? high / volume : 0;
-  // Substance-dominant scoring: 55% substance, 20% breadth, 15% advanced, 10% volume
-  const breadthNorm = Math.min(subcats.size / 8, 1);
-  const advancedNorm = Math.min(advanced / Math.max(volume, 1) * 3, 1);
-  const volumeNorm = Math.min(volume / 30, 1);
-  const score = substanceRate * 0.55 + breadthNorm * 0.20 + advancedNorm * 0.15 + volumeNorm * 0.10;
-  return {{ ticker, volume, high, substanceRate, breadth: subcats.size, advanced, score }};
-}}
+  const buckets = new Set(cq.map(q => _getMacroBucket(q.subcategory)));
+  const hasRevenue = cq.some(q => /revenue|product dev|agent|transform|new model|imaging/i.test(q.subcategory || ''));
+  const hasProductivity = cq.some(q => /code gen|copilot|assistant|efficien|automat|operat/i.test(q.subcategory || ''));
 
-function _classifyCompanies(quotes, filterFn) {{
-  const relevantQ = filterFn ? quotes.filter(filterFn) : quotes;
-  const tickers = [...new Set(relevantQ.map(q => q.company))];
-  const scored = tickers.map(t => _scoreCompanyMaturity(t, relevantQ)).filter(Boolean)
-    .sort((a, b) => b.score - a.score || b.substanceRate - a.substanceRate);
-  if (scored.length === 0) return {{ leaders: [], building: [], exploring: [] }};
-  const t1 = Math.ceil(scored.length * 0.2);
-  const t2 = Math.ceil(scored.length * 0.5);
-  return {{
-    leaders: scored.slice(0, t1),
-    building: scored.slice(t1, t2),
-    exploring: scored.slice(t2),
-  }};
-}}
+  let stage = 1;
+  if (substanceRate >= 0.15 && hasRevenue && buckets.size >= 3) stage = 4;
+  else if (substanceRate >= 0.08 && buckets.size >= 2 && subcats.size >= 3) stage = 3;
+  else if (hasProductivity && cq.length >= 2) stage = 2;
 
-function _getSubcatData(quotes) {{
-  const data = {{}};
-  quotes.forEach(q => {{
-    const sc = q.subcategory;
-    if (!sc || sc === 'Generic AI Mention' || q.categories === 'Vague/Buzzword') return;
-    if (!data[sc]) data[sc] = {{ count: 0, companies: new Set(), quotes: [] }};
-    data[sc].count++;
-    data[sc].companies.add(q.company);
-    if (data[sc].quotes.length < 5) {{
-      data[sc].quotes.push({{
-        company: q.company, quarter: q.quarter, quote: (q.quote || '').substring(0, 400),
-        summary: q.summary || '', role: q.role || '', significance: q.significance || 'Medium'
-      }});
-    }}
-  }});
-  return data;
-}}
-
-function _tierCard(label, statusClass, color, companies) {{
-  if (companies.length === 0) return '';
-  const avgSubstance = Math.round(companies.reduce((s, c) => s + c.substanceRate, 0) / companies.length * 100);
-  const avgBreadth = (companies.reduce((s, c) => s + c.breadth, 0) / companies.length).toFixed(1);
-  return `<div class="sr-wave-card">
-    <div class="wave-label" style="color:${{color}}">${{label}}</div>
-    <div class="wave-title">${{companies.length}} Compan${{companies.length === 1 ? 'y' : 'ies'}}</div>
-    <span class="wave-status ${{statusClass}}">${{avgSubstance}}% avg substance &bull; ${{avgBreadth}} avg use cases</span>
-    ${{companies.slice(0, 10).map(c =>
-      `<div class="sr-wave-uc" onclick="_srExpandCompany('${{c.ticker}}')">
-        <span>${{TICKER_NAMES[c.ticker] || c.ticker}}</span>
-        <span class="uc-count">${{c.volume}} mentions &middot; ${{Math.round(c.substanceRate * 100)}}% concrete</span>
-      </div>`).join('')}}
-    ${{companies.length > 10 ? `<div style="font-size:0.75rem; color:var(--text-muted); padding:6px 0;">+ ${{companies.length - 10}} more</div>` : ''}}
-  </div>`;
+  return {{ ticker, volume: cq.length, high, substanceRate, breadth: subcats.size, buckets: [...buckets], stage }};
 }}
 
 function _srExpandCompany(ticker) {{
-  // Expand company details inline at bottom of strategic report
   const existing = document.getElementById('sr-company-expand');
-  if (existing && existing.dataset.ticker === ticker) {{
-    existing.remove();
-    return;
-  }}
+  if (existing && existing.dataset.ticker === ticker) {{ existing.remove(); return; }}
   if (existing) existing.remove();
 
-  const cq = ALL_QUOTES.filter(q => q.company === ticker && q.categories !== 'Vague/Buzzword')
+  // Scope to current filter
+  let pool = ALL_QUOTES;
+  if (_srCurrentMode === 'sector' && _srCurrentFilter) pool = pool.filter(q => q.sector === _srCurrentFilter);
+  const cq = pool.filter(q => q.company === ticker && q.categories !== 'Vague/Buzzword')
     .sort((a, b) => (a.significance === 'High' ? 0 : 1) - (b.significance === 'High' ? 0 : 1));
   const companyName = TICKER_NAMES[ticker] || ticker;
   const highCount = cq.filter(q => q.significance === 'High').length;
   const subcats = [...new Set(cq.map(q => q.subcategory).filter(Boolean))];
 
-  let detailHtml = `<div id="sr-company-expand" data-ticker="${{ticker}}" class="sr-section" style="border-color:var(--accent); border-width:2px;">
+  let d = `<div id="sr-company-expand" data-ticker="${{ticker}}" class="sr-section" style="border-color:var(--accent); border-width:2px;">
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <div>
         <div class="sr-section-label">${{esc(companyName)}} (${{ticker}})</div>
-        <div class="sr-section-title" style="margin-bottom:8px;">${{cq.length}} AI mentions &middot; ${{highCount}} concrete &middot; ${{subcats.length}} use cases</div>
+        <div class="sr-section-title" style="margin-bottom:8px;">${{cq.length}} AI mentions &middot; ${{highCount}} with evidence &middot; ${{subcats.length}} use cases</div>
       </div>
       <div style="cursor:pointer; font-size:1.2rem; color:var(--text-muted); padding:8px;" onclick="document.getElementById('sr-company-expand').remove()">&#10005;</div>
     </div>`;
   if (subcats.length > 0) {{
-    detailHtml += `<div style="margin-bottom:12px; display:flex; flex-wrap:wrap; gap:6px;">
+    d += `<div style="margin-bottom:12px; display:flex; flex-wrap:wrap; gap:6px;">
       ${{subcats.map(sc => `<span style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:2px 8px; font-size:0.72rem; color:var(--text-secondary);">${{esc(sc)}}</span>`).join('')}}
     </div>`;
   }}
-  detailHtml += `<div style="max-height:400px; overflow-y:auto;">`;
+  d += `<div style="max-height:400px; overflow-y:auto;">`;
   cq.slice(0, 15).forEach(q => {{
     const sigClass = q.significance === 'High' ? 'sig-high' : 'sig-medium';
-    detailHtml += `<div style="padding:10px 0; border-bottom:1px solid var(--border);">
+    d += `<div style="padding:10px 0; border-bottom:1px solid var(--border);">
       <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:4px; display:flex; gap:10px; flex-wrap:wrap;">
-        <span>${{esc(q.quarter)}}</span>
-        <span>${{esc(q.role || '')}}</span>
+        <span>${{esc(q.quarter)}}</span><span>${{esc(q.role || '')}}</span>
         <span class="${{sigClass}}">${{esc(q.significance || 'Medium')}}</span>
         ${{q.subcategory ? `<span style="opacity:0.7">${{esc(q.subcategory)}}</span>` : ''}}
       </div>
@@ -2683,23 +2648,11 @@ function _srExpandCompany(ticker) {{
     </div>`;
   }});
   if (cq.length > 15) {{
-    detailHtml += `<div style="padding:10px 0; font-size:0.8rem; color:var(--text-muted);">+ ${{cq.length - 15}} more segments. <a href="#" style="color:var(--accent);" onclick="event.preventDefault();document.getElementById('companySearch').value='${{ticker}}';document.getElementById('companySearch').dispatchEvent(new Event('input'))">View full profile &rarr;</a></div>`;
+    d += `<div style="padding:10px 0; font-size:0.8rem; color:var(--text-muted);">+ ${{cq.length - 15}} more. <a href="#" style="color:var(--accent);" onclick="event.preventDefault();document.getElementById('companySearch').value='${{ticker}}';document.getElementById('companySearch').dispatchEvent(new Event('input'))">View full profile &rarr;</a></div>`;
   }}
-  detailHtml += `</div></div>`;
-
-  document.getElementById('strategicReport').insertAdjacentHTML('beforeend', detailHtml);
+  d += `</div></div>`;
+  document.getElementById('strategicReport').insertAdjacentHTML('beforeend', d);
   document.getElementById('sr-company-expand').scrollIntoView({{ behavior: 'smooth', block: 'nearest' }});
-}}
-
-function _topUseCasesHtml(subcatData) {{
-  const sorted = Object.entries(subcatData).sort((a, b) => b[1].count - a[1].count).slice(0, 10);
-  if (sorted.length === 0) return '<p style="color:var(--text-muted);">No specific use cases found.</p>';
-  return sorted.map(([name, d]) =>
-    `<div class="sr-wave-uc" onclick="_srClickUseCase('${{name.replace(/'/g, "\\\\'")}}')">
-      <span>${{name}} <span style="opacity:0.5; font-size:0.75rem;">${{d.companies.size}} co.</span></span>
-      <span class="uc-count">${{d.count}}</span>
-    </div>`
-  ).join('');
 }}
 
 function renderStrategicReport(mode, filterValue) {{
@@ -2708,7 +2661,6 @@ function renderStrategicReport(mode, filterValue) {{
   _srCurrentFilter = filterValue;
 
   let scopeQuotes, scopeLabel, scopeSummary, filterFn;
-
   if (mode === 'company') {{
     filterFn = q => q.company === filterValue;
     scopeQuotes = ALL_QUOTES.filter(filterFn);
@@ -2732,13 +2684,12 @@ function renderStrategicReport(mode, filterValue) {{
   const substancePct = nonVague.length > 0 ? Math.round(highSig.length / nonVague.length * 100) : 0;
   const gapPct = 100 - substancePct;
   const uniqueCompanies = [...new Set(scopeQuotes.map(q => q.company))];
-  const subcatData = _getSubcatData(scopeQuotes);
+  const totalCalls = scopeSummary.length;
 
-  // Timeline stats
+  // Timeline
   const mentionsByQ = {{}};
   scopeQuotes.forEach(q => {{ mentionsByQ[q.quarter] = (mentionsByQ[q.quarter] || 0) + 1; }});
-  const firstQ = QUARTERS[0];
-  const lastQ = QUARTERS[QUARTERS.length - 1];
+  const firstQ = QUARTERS[0]; const lastQ = QUARTERS[QUARTERS.length - 1];
   const firstMentions = mentionsByQ[firstQ] || 0;
   const lastMentions = mentionsByQ[lastQ] || 0;
   const growthX = firstMentions > 0 ? (lastMentions / firstMentions).toFixed(1) : (lastMentions > 0 ? '++' : '0');
@@ -2748,9 +2699,40 @@ function renderStrategicReport(mode, filterValue) {{
   scopeQuotes.forEach(q => {{ if (q.role === 'Analyst') analystCount++; else execCount++; }});
   const execPct = (execCount + analystCount) > 0 ? Math.round(execCount / (execCount + analystCount) * 100) : 0;
 
+  // Macro buckets
+  const bucketCounts = {{}};
+  nonVague.forEach(q => {{
+    const b = _getMacroBucket(q.subcategory);
+    bucketCounts[b] = (bucketCounts[b] || 0) + 1;
+  }});
+  const bucketTotal = Object.values(bucketCounts).reduce((s, v) => s + v, 0) || 1;
+  const bucketRows = Object.entries(bucketCounts).sort((a, b) => b[1] - a[1]);
+  const topBucket = bucketRows[0] ? bucketRows[0][0] : '';
+  const revenueBucketPct = Math.round((bucketCounts['Customer & Revenue'] || 0) / bucketTotal * 100);
+  const efficiencyBucketPct = Math.round((bucketCounts['Efficiency & Cost Reduction'] || 0) / bucketTotal * 100);
+
+  // Maturity stages
+  const stageData = uniqueCompanies.map(t => _classifyStage(t, scopeQuotes)).filter(Boolean);
+  const byStageCounts = [0, 0, 0, 0, 0];
+  stageData.forEach(c => {{ byStageCounts[c.stage]++; }});
+
+  // Narrative evolution by quarter
+  const qBuckets = {{}};
+  QUARTERS.forEach(qr => {{ qBuckets[qr] = {{}}; }});
+  nonVague.forEach(q => {{
+    const b = _getMacroBucket(q.subcategory);
+    if (qBuckets[q.quarter]) qBuckets[q.quarter][b] = (qBuckets[q.quarter][b] || 0) + 1;
+  }});
+  const narrativeEvolution = QUARTERS.filter(qr => mentionsByQ[qr] > 0).map(qr => {{
+    const bs = Object.entries(qBuckets[qr]).sort((a, b) => b[1] - a[1]);
+    return {{ quarter: qr, total: mentionsByQ[qr], topBucket: bs[0] ? bs[0][0] : 'N/A' }};
+  }});
+
   let html = '';
 
-  // === SECTION 1: The Hook ===
+  // ============================================================
+  // SECTION 1: AI Rhetoric
+  // ============================================================
   if (mode === 'company') {{
     const rows = scopeSummary;
     const aiRows = rows.filter(r => r.mentions > 0);
@@ -2758,14 +2740,16 @@ function renderStrategicReport(mode, filterValue) {{
     const maxIntensity = Math.max(...rows.map(r => r.intensity), 0);
     const sector = rows[0]?.sector || '';
     const latestRow = rows.find(r => r.quarter === lastQ);
-    let rankText = '';
+    let rankHtml = '';
     if (latestRow) {{
       const peers = ALL_SUMMARY.filter(r => r.sector === sector && r.quarter === lastQ);
       if (peers.length > 1) {{
         const rank = peers.filter(r => r.intensity > latestRow.intensity).length + 1;
-        rankText = `Ranked <strong>#${{rank}} of ${{peers.length}}</strong> in ${{esc(sector)}} by AI Intensity.`;
+        rankHtml = `<strong>#${{rank}} of ${{peers.length}}</strong> in ${{esc(sector)}} by latest-quarter AI intensity.`;
       }}
     }}
+    const myStage = stageData.find(c => c.ticker === filterValue);
+    const stageDef = myStage ? STAGE_DEFS[myStage.stage - 1] : STAGE_DEFS[0];
     html += `<div class="sr-section">
       <div class="sr-section-label">${{esc(scopeLabel)}} &mdash; ${{esc(sector)}}</div>
       <div class="sr-section-title">AI Profile: ${{esc(scopeLabel)}}</div>
@@ -2773,136 +2757,254 @@ function renderStrategicReport(mode, filterValue) {{
         <div class="sr-big-stat"><span class="num">${{totalMentions}}</span><span class="lbl">AI Mentions</span></div>
         <div class="sr-big-stat"><span class="num">${{aiRows.length}}</span><span class="lbl">Active Quarters</span></div>
         <div class="sr-big-stat"><span class="num">${{maxIntensity}}%</span><span class="lbl">Peak Intensity</span></div>
-        <div class="sr-big-stat"><span class="num">${{execPct}}%</span><span class="lbl">Exec-Driven</span></div>
+        <div class="sr-big-stat"><span class="num" style="color:${{stageDef.color}}">${{stageDef.label}}</span><span class="lbl">Maturity Stage</span></div>
       </div>
       <div class="sr-body">
         ${{esc(scopeLabel)}} has referenced AI in <strong>${{totalMentions}} earnings call mentions</strong> across ${{aiRows.length}} quarters.
-        ${{execPct > 65 ? 'Executives are proactively championing AI' : execPct < 35 ? 'Most AI discussion is analyst-driven' : 'AI discussion is balanced between executives and analysts'}}.
-        ${{rankText}}
+        ${{execPct > 65 ? 'Executives are proactively driving the AI narrative.' : execPct < 35 ? 'Most AI discussion comes from analyst questions, not executive initiative.' : 'AI discussion is split between executive initiative and analyst inquiry.'}}
+        ${{rankHtml}}
       </div>
+      <div class="sr-body" style="margin-top:8px;"><strong>Maturity assessment:</strong> <span style="color:${{stageDef.color}}; font-weight:700;">Stage ${{stageDef.stage}} \u2014 ${{stageDef.label}}.</span> ${{stageDef.desc}}</div>
     </div>`;
   }} else {{
-    const totalCalls = scopeSummary.length;
+    const interpText = execPct > 65
+      ? `AI has become table stakes in ${{mode === 'sector' ? esc(scopeLabel) : ''}} investor messaging. Executives are signaling strategic intent.`
+      : `Analysts are driving much of the AI conversation \u2014 ${{mode === 'sector' ? esc(scopeLabel) + ' executives' : 'executives'}} are reactive, not proactive.`;
     html += `<div class="sr-section">
       <div class="sr-section-label">${{mode === 'sector' ? esc(scopeLabel) + ' Sector' : 'Market Overview'}}</div>
-      <div class="sr-section-title">${{mode === 'sector' ? esc(scopeLabel) + ': AI Landscape' : 'The Paradox: Everyone Is Talking, Few Are Showing Results'}}</div>
+      <div class="sr-section-title">${{mode === 'sector'
+        ? esc(scopeLabel) + ' ${{uniqueCompanies.length > 1 ? "companies are" : "is"}} signaling AI ambition \u2014 but ${{substancePct <= 15 ? "almost none are" : "few are"}} delivering measurable outcomes'
+        : 'AI rhetoric is exploding across the S&P 500, but substance remains scarce'}}</div>
       <div class="sr-big-stats">
-        <div class="sr-big-stat"><span class="num">${{growthX}}x</span><span class="lbl">Growth (${{firstQ}} &rarr; ${{lastQ}})</span></div>
+        <div class="sr-big-stat"><span class="num">${{growthX}}x</span><span class="lbl">Mention Growth</span></div>
         <div class="sr-big-stat"><span class="num">${{execPct}}%</span><span class="lbl">Exec-Driven</span></div>
         <div class="sr-big-stat"><span class="num">${{uniqueCompanies.length}}</span><span class="lbl">Companies</span></div>
-        <div class="sr-big-stat"><span class="num">${{scopeQuotes.length.toLocaleString()}}</span><span class="lbl">AI Mentions</span></div>
+        <div class="sr-big-stat"><span class="num">${{substancePct}}%</span><span class="lbl">With Evidence</span></div>
       </div>
       <div class="sr-body">
-        ${{mode === 'sector'
-          ? `Across ${{uniqueCompanies.length}} ${{esc(scopeLabel)}} companies and ${{totalCalls.toLocaleString()}} earnings calls, AI mentions`
-          : `Across ${{uniqueCompanies.length}} S&P 500 companies and ${{totalCalls.toLocaleString()}} earnings calls, AI mentions`}} have grown
-        <strong>${{growthX}}x</strong> from ${{firstQ}} to ${{lastQ}}
-        (${{firstMentions}} &rarr; ${{lastMentions}} per quarter).
-        <strong>${{execPct}}%</strong> come from executives proactively, not in response to analyst questions${{mode === 'all' ? ' \u2014 but volume alone isn\u2019t value.' : '.'}}</div>
+        AI mentions have grown <strong>${{growthX}}x</strong> from ${{firstQ}} to ${{lastQ}} (${{firstMentions}} &rarr; ${{lastMentions}} per quarter) across ${{totalCalls.toLocaleString()}} earnings calls.
+        ${{interpText}}
+      </div>
     </div>`;
   }}
 
-  // === SECTION 2: Substance Gap ===
+  // ============================================================
+  // SECTION 2: Substance Gap
+  // ============================================================
+  const compSub = {{}};
+  scopeQuotes.forEach(q => {{
+    if (q.significance === 'High' && q.categories !== 'Vague/Buzzword')
+      compSub[q.company] = (compSub[q.company] || 0) + 1;
+  }});
+  const companiesWithEvidence = Object.keys(compSub).length;
+  const interpSubstance = substancePct <= 10
+    ? `${{mode === 'sector' ? esc(scopeLabel) + ' is' : 'The market is'}} in <strong>signaling mode, not execution mode</strong>.`
+    : substancePct <= 25
+    ? `Most AI talk remains aspirational. Execution evidence is thin.`
+    : `Some companies are backing claims with evidence, but gaps remain wide.`;
+
   html += `<div class="sr-section">
-    <div class="sr-section-label">Substance Analysis</div>
-    <div class="sr-section-title">${{gapPct}}% of AI Talk Lacks Concrete Evidence</div>
+    <div class="sr-section-label">The Substance Gap</div>
+    <div class="sr-section-title">Only ${{highSig.length}} of ${{nonVague.length.toLocaleString()}} AI mentions cite measurable evidence</div>
     <div class="sr-gap-bar">
       <div class="filled" style="width:${{Math.max(substancePct, 3)}}%">${{substancePct}}% Concrete</div>
       <div class="empty">${{gapPct}}% No specifics</div>
     </div>
     <div class="sr-body">
-      Only <strong>${{substancePct}}%</strong> of substantive AI mentions (${{highSig.length.toLocaleString()}} of ${{nonVague.length.toLocaleString()}})
-      cite concrete details \u2014 dollar figures, measurable outcomes, or specific product launches.
-      ${{vagueCt > 0 ? `${{vagueCt.toLocaleString()}} additional mentions were pure buzzwords and excluded.` : ''}}
+      ${{interpSubstance}} Only <strong>${{companiesWithEvidence}} of ${{uniqueCompanies.length}} companies</strong> provide
+      any measurable evidence (dollar figures, specific products, quantified outcomes).
+      ${{vagueCt > 0 ? `An additional ${{vagueCt.toLocaleString()}} mentions were pure buzzwords, excluded from analysis.` : ''}}
     </div>`;
-  // Substance heroes (show for all/sector, not company)
-  if (mode !== 'company') {{
-    const compSub = {{}};
-    scopeQuotes.forEach(q => {{
-      if (q.significance === 'High' && q.categories !== 'Vague/Buzzword')
-        compSub[q.company] = (compSub[q.company] || 0) + 1;
+  if (mode !== 'company' && companiesWithEvidence > 0) {{
+    const heroes = Object.entries(compSub).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    html += `<div class="sr-body" style="margin-top:12px; font-weight:600; color:var(--text);">Companies with concrete evidence (click to expand):</div>
+    <div class="sr-substance-heroes">
+      ${{heroes.map(([t, c]) =>
+        `<span class="sr-hero-chip" onclick="_srExpandCompany('${{t}}')">${{TICKER_NAMES[t] || t}} (${{c}})</span>`
+      ).join('')}}
+    </div>`;
+  }}
+  html += `</div>`;
+
+  // ============================================================
+  // SECTION 3: Where AI Is Being Applied (macro buckets)
+  // ============================================================
+  const dominantBucketInterp = efficiencyBucketPct > revenueBucketPct
+    ? `Most AI activity is <strong>defensive</strong> (efficiency and cost reduction), not revenue-driving. Only ${{revenueBucketPct}}% of mentions target customer or revenue outcomes.`
+    : revenueBucketPct > efficiencyBucketPct
+    ? `AI activity skews toward <strong>customer and revenue</strong> outcomes (${{revenueBucketPct}}%), suggesting a growth-oriented AI strategy.`
+    : `AI activity is balanced between efficiency (${{efficiencyBucketPct}}%) and revenue (${{revenueBucketPct}}%) use cases.`;
+
+  html += `<div class="sr-section">
+    <div class="sr-section-label">AI Application Map</div>
+    <div class="sr-section-title">Where Is AI Actually Being Applied?</div>
+    <div class="sr-body" style="margin-bottom:12px;">${{dominantBucketInterp}}</div>
+    <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+      <thead><tr style="border-bottom:2px solid var(--border); text-align:left;">
+        <th style="padding:8px 4px; color:var(--text-muted); font-weight:600;">Category</th>
+        <th style="padding:8px 4px; color:var(--text-muted); font-weight:600; text-align:right;">Mentions</th>
+        <th style="padding:8px 4px; color:var(--text-muted); font-weight:600; text-align:right;">% of Total</th>
+        <th style="padding:8px 12px; color:var(--text-muted); font-weight:600; width:40%;"></th>
+      </tr></thead><tbody>
+      ${{bucketRows.filter(([b]) => b !== 'Other').map(([bucket, count]) => {{
+        const pct = Math.round(count / bucketTotal * 100);
+        return `<tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:10px 4px; font-weight:600; color:var(--text);">${{bucket}}</td>
+          <td style="padding:10px 4px; text-align:right; color:var(--text-secondary);">${{count}}</td>
+          <td style="padding:10px 4px; text-align:right; color:var(--text-secondary);">${{pct}}%</td>
+          <td style="padding:10px 12px;"><div style="background:var(--border); border-radius:4px; height:14px; overflow:hidden;"><div style="width:${{pct}}%; height:100%; background:var(--accent); border-radius:4px;"></div></div></td>
+        </tr>`;
+      }}).join('')}}
+      </tbody>
+    </table>`;
+
+  // Narrative evolution (show for non-company views)
+  if (mode !== 'company' && narrativeEvolution.length >= 3) {{
+    // Group quarters into years
+    const years = {{}};
+    narrativeEvolution.forEach(ne => {{
+      const yr = ne.quarter.substring(0, 4);
+      if (!years[yr]) years[yr] = {{ total: 0, buckets: {{}} }};
+      years[yr].total += ne.total;
+      const bs = qBuckets[ne.quarter];
+      Object.entries(bs).forEach(([b, c]) => {{ years[yr].buckets[b] = (years[yr].buckets[b] || 0) + c; }});
     }});
-    const heroes = Object.entries(compSub).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    if (heroes.length > 0) {{
-      html += `<div class="sr-body" style="margin-top:12px; font-weight:600; color:var(--text);">Leading on substance:</div>
-      <div class="sr-substance-heroes">
-        ${{heroes.map(([t, c]) =>
-          `<span class="sr-hero-chip" onclick="_srExpandCompany('${{t}}')">${{TICKER_NAMES[t] || t}} (${{c}})</span>`
-        ).join('')}}
-      </div>`;
+    const yearEntries = Object.entries(years).sort((a, b) => a[0].localeCompare(b[0]));
+    if (yearEntries.length >= 2) {{
+      html += `<div style="margin-top:16px;"><div style="font-weight:600; font-size:0.85rem; color:var(--text); margin-bottom:8px;">Narrative Evolution</div>`;
+      yearEntries.forEach(([yr, data]) => {{
+        const top = Object.entries(data.buckets).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([b]) => b).join(', ');
+        html += `<div style="display:flex; gap:12px; padding:6px 0; font-size:0.82rem; border-bottom:1px solid var(--border);">
+          <span style="font-weight:700; min-width:40px; color:var(--accent);">${{yr}}</span>
+          <span style="color:var(--text-secondary);">${{data.total}} mentions &mdash; Dominated by: ${{top}}</span>
+        </div>`;
+      }});
+      html += `</div>`;
     }}
   }}
   html += `</div>`;
 
-  // === SECTION 3: Maturity Tiers (companies by adoption stage) ===
-  if (mode !== 'company') {{
-    const tiers = _classifyCompanies(scopeQuotes, filterFn);
-    html += `<div class="sr-section">
-      <div class="sr-section-label">AI Maturity Comparison</div>
-      <div class="sr-section-title">Companies by AI Adoption Stage</div>
-      <div class="sr-body" style="margin-bottom:8px;">Companies ranked by a composite score: substance rate (% of mentions backed by concrete evidence, weighted 55%), use-case breadth (20%), advanced AI use cases (15%), and volume (10%). Click any company to expand its details below.</div>
-      <div class="sr-waves">
-        ${{_tierCard('Leaders', 'mature', '#48bb78', tiers.leaders)}}
-        ${{_tierCard('Building', 'emerging', '#f4a261', tiers.building)}}
-        ${{_tierCard('Exploring', 'frontier', '#7c6aef', tiers.exploring)}}
-      </div>
-    </div>`;
-  }} else {{
-    // Company view: show where this company ranks among peers
+  // ============================================================
+  // SECTION 4: Maturity Assessment (4 stages)
+  // ============================================================
+  if (mode === 'company') {{
+    // Already shown in section 1 for company view
+    // Show peer comparison instead
     const sector = scopeSummary[0]?.sector || '';
     const peerQuotes = ALL_QUOTES.filter(q => q.sector === sector);
-    const tiers = _classifyCompanies(peerQuotes, q => q.sector === sector);
-    const allPeers = [...tiers.leaders, ...tiers.building, ...tiers.exploring];
-    const myIdx = allPeers.findIndex(c => c.ticker === filterValue);
-    const myTier = tiers.leaders.find(c => c.ticker === filterValue) ? 'Leader' :
-                   tiers.building.find(c => c.ticker === filterValue) ? 'Building' : 'Exploring';
-    const tierColor = myTier === 'Leader' ? '#48bb78' : myTier === 'Building' ? '#f4a261' : '#7c6aef';
+    const peerStages = [...new Set(peerQuotes.map(q => q.company))].map(t => _classifyStage(t, peerQuotes)).filter(Boolean);
+    const peerByCounts = [0, 0, 0, 0, 0];
+    peerStages.forEach(c => {{ peerByCounts[c.stage]++; }});
+    const myStage = stageData.find(c => c.ticker === filterValue);
+    const myStageNum = myStage ? myStage.stage : 1;
+    const sameStage = peerStages.filter(c => c.stage === myStageNum && c.ticker !== filterValue);
+
     html += `<div class="sr-section">
       <div class="sr-section-label">Peer Comparison &mdash; ${{esc(sector)}}</div>
-      <div class="sr-section-title">AI Maturity: <span style="color:${{tierColor}}">${{myTier}}</span> (Rank #${{myIdx + 1}} of ${{allPeers.length}})</div>
-      <div class="sr-body" style="margin-bottom:12px;">Ranked among ${{esc(sector)}} peers by substance rate (55%), use-case breadth (20%), advanced AI (15%), and volume (10%).</div>
-      <div class="sr-waves">
-        ${{_tierCard('Leaders', 'mature', '#48bb78', tiers.leaders.slice(0, 5))}}
-        ${{_tierCard('Building', 'emerging', '#f4a261', tiers.building.slice(0, 5))}}
-        ${{_tierCard('Exploring', 'frontier', '#7c6aef', tiers.exploring.slice(0, 5))}}
-      </div>
-    </div>`;
+      <div class="sr-section-title">Where ${{esc(scopeLabel)}} Stands Among ${{peerStages.length}} Peers</div>
+      <div class="sr-body" style="margin-bottom:12px;">`;
+    STAGE_DEFS.forEach(sd => {{
+      const count = peerByCounts[sd.stage];
+      const isMe = sd.stage === myStageNum;
+      html += `<div style="display:flex; align-items:center; gap:10px; padding:6px 0; ${{isMe ? 'font-weight:700;' : ''}}">
+        <span style="color:${{sd.color}}; min-width:160px;">Stage ${{sd.stage}}: ${{sd.label}}</span>
+        <div style="flex:1; background:var(--border); border-radius:4px; height:18px; overflow:hidden;">
+          <div style="width:${{peerStages.length > 0 ? Math.round(count / peerStages.length * 100) : 0}}%; height:100%; background:${{sd.color}}; border-radius:4px; display:flex; align-items:center; padding:0 6px;">
+            <span style="font-size:0.7rem; color:#fff; white-space:nowrap;">${{count}} compan${{count !== 1 ? 'ies' : 'y'}}</span>
+          </div>
+        </div>
+        ${{isMe ? '<span style="font-size:0.75rem;">&#9668; You</span>' : ''}}
+      </div>`;
+    }});
+    html += `</div>`;
+    if (sameStage.length > 0) {{
+      html += `<div style="font-size:0.82rem; color:var(--text-muted); margin-top:4px;">Also at ${{STAGE_DEFS[myStageNum - 1].label}}: ${{sameStage.slice(0, 5).map(c => TICKER_NAMES[c.ticker] || c.ticker).join(', ')}}${{sameStage.length > 5 ? ` + ${{sameStage.length - 5}} more` : ''}}</div>`;
+    }}
+    html += `</div>`;
+  }} else {{
+    const stageWithEvidence = stageData.filter(c => c.stage >= 3);
+    const leadersWeak = stageWithEvidence.length > 0 && stageWithEvidence.every(c => c.substanceRate < 0.30);
+    html += `<div class="sr-section">
+      <div class="sr-section-label">AI Maturity Assessment</div>
+      <div class="sr-section-title">${{byStageCounts[4] + byStageCounts[3]}} of ${{uniqueCompanies.length}} show real deployment evidence${{leadersWeak ? ' \u2014 and even they are weak' : ''}}</div>
+      <div class="sr-body" style="margin-bottom:16px;">Companies classified into four maturity stages based on: (1) what they\u2019re deploying (efficiency vs. revenue), (2) whether they cite measurable evidence, and (3) breadth of AI applications.</div>`;
+    STAGE_DEFS.forEach(sd => {{
+      const comps = stageData.filter(c => c.stage === sd.stage).sort((a, b) => b.substanceRate - a.substanceRate || b.volume - a.volume);
+      const pct = uniqueCompanies.length > 0 ? Math.round(comps.length / uniqueCompanies.length * 100) : 0;
+      html += `<div style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+          <span style="color:${{sd.color}}; font-weight:700; font-size:0.85rem;">Stage ${{sd.stage}}: ${{sd.label}}</span>
+          <span style="font-size:0.78rem; color:var(--text-muted);">${{comps.length}} companies (${{pct}}%)</span>
+        </div>
+        <div style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:6px;">${{sd.desc}}</div>`;
+      if (comps.length > 0) {{
+        const avgSub = Math.round(comps.reduce((s, c) => s + c.substanceRate, 0) / comps.length * 100);
+        html += `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:4px;">
+          ${{comps.slice(0, 12).map(c =>
+            `<span class="sr-hero-chip" style="background:rgba(${{sd.color === '#48bb78' ? '72,187,120' : sd.color === '#7c6aef' ? '124,106,239' : sd.color === '#f4a261' ? '244,162,97' : '239,68,68'}},0.12); border-color:${{sd.color}}40; color:${{sd.color}};" onclick="_srExpandCompany('${{c.ticker}}')">${{TICKER_NAMES[c.ticker] || c.ticker}}</span>`
+          ).join('')}}
+          ${{comps.length > 12 ? `<span style="font-size:0.72rem; color:var(--text-muted); padding:4px;">+ ${{comps.length - 12}} more</span>` : ''}}
+        </div>
+        <div style="font-size:0.75rem; color:var(--text-muted);">Avg substance rate: ${{avgSub}}%${{sd.stage >= 3 && avgSub < 30 ? ' \u2014 even \u201Cleaders\u201D have thin evidence' : ''}}</div>`;
+      }}
+      html += `</div>`;
+    }});
+    html += `</div>`;
   }}
 
-  // === SECTION 4: Top Use Cases ===
-  html += `<div class="sr-section">
-    <div class="sr-section-label">${{mode === 'company' ? esc(scopeLabel) + ' Focus Areas' : 'Use Case Landscape'}}</div>
-    <div class="sr-section-title">Top AI Use Cases</div>
-    ${{_topUseCasesHtml(subcatData)}}
-  </div>`;
-
-  // === SECTION 5: Bottom Line ===
-  const topSubcats = Object.entries(subcatData).sort((a, b) => b[1].count - a[1].count).slice(0, 3).map(([n]) => n);
+  // ============================================================
+  // SECTION 5: Strategic Implications + Bottom Line
+  // ============================================================
+  const findings = [];
   if (mode === 'company') {{
     const sector = scopeSummary[0]?.sector || '';
-    const peerQuotes = ALL_QUOTES.filter(q => q.sector === sector && q.categories !== 'Vague/Buzzword');
-    const peerTickers = [...new Set(peerQuotes.map(q => q.company))];
-    const mySubstance = substancePct;
-    const betterCount = peerTickers.filter(t => {{
-      const tq = peerQuotes.filter(q => q.company === t);
-      const th = tq.filter(q => q.significance === 'High').length;
-      return tq.length > 0 && Math.round(th / tq.length * 100) > mySubstance;
-    }}).length;
-    html += `<div class="sr-cta">
-      <div class="cta-headline">Bottom Line</div>
-      <div class="cta-sub">
-        ${{esc(scopeLabel)}} has ${{nonVague.length}} substantive AI mentions with a ${{substancePct}}% substance rate${{betterCount > 0 ? ` (${{betterCount}} ${{esc(sector)}} peer${{betterCount !== 1 ? 's' : ''}} score higher)` : ' (top in sector)'}}.
-        ${{topSubcats.length > 0 ? `Key focus areas: ${{topSubcats.join(', ')}}.` : ''}}
+    const myStage = stageData.find(c => c.ticker === filterValue);
+    const myStageNum = myStage ? myStage.stage : 1;
+    const stageDef = STAGE_DEFS[myStageNum - 1];
+
+    if (substancePct < 15) findings.push(`${{esc(scopeLabel)}} talks about AI frequently but provides almost no measurable evidence of outcomes.`);
+    else if (substancePct >= 30) findings.push(`${{esc(scopeLabel)}} is among the more concrete in its AI disclosures \u2014 ${{substancePct}}% of mentions cite evidence.`);
+    if (efficiencyBucketPct > 50) findings.push(`AI efforts are concentrated in efficiency and cost reduction, not revenue transformation.`);
+    if (myStageNum <= 2) findings.push(`At Stage ${{myStageNum}} (${{stageDef.label}}), ${{esc(scopeLabel)}} has not yet demonstrated enterprise-wide AI integration.`);
+    else findings.push(`At Stage ${{myStageNum}} (${{stageDef.label}}), ${{esc(scopeLabel)}} is among the more advanced in its sector.`);
+
+    html += `<div class="sr-cta" style="text-align:left;">
+      <div class="cta-headline">Strategic Assessment</div>
+      <div class="cta-sub" style="max-width:100%;">
+        <ul style="list-style:none; padding:0; margin:0 0 16px 0;">
+          ${{findings.map(f => `<li style="padding:4px 0 4px 16px; position:relative;">&bull; ${{f}}</li>`).join('')}}
+        </ul>
+        <div style="font-weight:700; margin-bottom:8px; color:var(--text);">Key questions for ${{esc(scopeLabel)}}:</div>
+        <ol style="margin:0; padding-left:20px; color:var(--text-secondary);">
+          <li style="padding:3px 0;">Is ${{esc(scopeLabel)}} deploying AI, or narrating about it?</li>
+          <li style="padding:3px 0;">Are AI investments reducing cost, or redesigning the business?</li>
+          <li style="padding:3px 0;">If a competitor rebuilt from scratch using AI today, what would they not build?</li>
+        </ol>
       </div>
     </div>`;
   }} else {{
-    const leadersCount = Math.ceil(uniqueCompanies.length * 0.2);
-    html += `<div class="sr-cta">
-      <div class="cta-headline">Bottom Line</div>
-      <div class="cta-sub">
-        ${{uniqueCompanies.length}} companies, ${{scopeQuotes.length.toLocaleString()}} AI mentions, but only ${{substancePct}}% backed by evidence.
-        Just ${{leadersCount}} companies (${{Math.round(leadersCount / uniqueCompanies.length * 100)}}%) qualify as Leaders.
-        ${{topSubcats.length > 0 ? `Most-discussed use cases: ${{topSubcats.join(', ')}}.` : ''}}
+    if (substancePct <= 15) findings.push(`AI has become mandatory executive rhetoric${{mode === 'sector' ? ' in ' + esc(scopeLabel) : ''}}. Execution lags dramatically \u2014 only ${{companiesWithEvidence}} of ${{uniqueCompanies.length}} companies provide measurable proof of impact.`);
+    else findings.push(`${{companiesWithEvidence}} of ${{uniqueCompanies.length}} companies provide concrete AI evidence, but the average substance rate (${{substancePct}}%) remains thin.`);
+    if (efficiencyBucketPct > revenueBucketPct) findings.push(`AI efforts are concentrated in efficiency and cost reduction (${{efficiencyBucketPct}}%), not revenue transformation (${{revenueBucketPct}}%).`);
+    if (byStageCounts[4] === 0) findings.push(`No company appears to be redesigning its operating model around AI. The entire ${{mode === 'sector' ? 'sector' : 'market'}} remains in early-stage experimentation despite heavy signaling.`);
+    else findings.push(`Only ${{byStageCounts[4]}} compan${{byStageCounts[4] === 1 ? 'y has' : 'ies have'}} reached Stage 4 (AI-Driven Model) \u2014 true AI transformation remains rare.`);
+    const stage3plus = byStageCounts[3] + byStageCounts[4];
+    if (stage3plus > 0 && stageData.filter(c => c.stage >= 3).every(c => c.substanceRate < 0.30)) {{
+      findings.push(`Even the top ${{stage3plus}} "advanced" compan${{stage3plus === 1 ? 'y averages' : 'ies average'}} just ${{Math.round(stageData.filter(c => c.stage >= 3).reduce((s, c) => s + c.substanceRate, 0) / stage3plus * 100)}}% substance \u2014 the leaders are weak leaders.`);
+    }}
+
+    html += `<div class="sr-cta" style="text-align:left;">
+      <div class="cta-headline">Strategic Assessment</div>
+      <div class="cta-sub" style="max-width:100%;">
+        <ul style="list-style:none; padding:0; margin:0 0 16px 0;">
+          ${{findings.map(f => `<li style="padding:4px 0 4px 16px; position:relative;">&bull; ${{f}}</li>`).join('')}}
+        </ul>
+        <div style="font-weight:700; margin-bottom:8px; color:var(--text);">Questions for the board:</div>
+        <ol style="margin:0; padding-left:20px; color:var(--text-secondary);">
+          <li style="padding:3px 0;">Are we signaling AI, or deploying it?</li>
+          <li style="padding:3px 0;">Are we applying AI to reduce cost, or to redesign the ${{mode === 'sector' ? esc(scopeLabel).toLowerCase() : 'business'}}?</li>
+          <li style="padding:3px 0;">If an AI-native competitor rebuilt from scratch today, what would they not build?</li>
+        </ol>
       </div>
     </div>`;
   }}
@@ -2911,21 +3013,13 @@ function renderStrategicReport(mode, filterValue) {{
 }}
 
 function _srClickUseCase(subcatName) {{
-  // Scope to current filter (sector, company, or all)
   let pool = ALL_QUOTES;
-  if (_srCurrentMode === 'sector' && _srCurrentFilter) {{
-    pool = ALL_QUOTES.filter(q => q.sector === _srCurrentFilter);
-  }} else if (_srCurrentMode === 'company' && _srCurrentFilter) {{
-    pool = ALL_QUOTES.filter(q => q.company === _srCurrentFilter);
-  }}
-  const quotes = pool
-    .filter(q => q.subcategory === subcatName && q.quote)
+  if (_srCurrentMode === 'sector' && _srCurrentFilter) pool = pool.filter(q => q.sector === _srCurrentFilter);
+  else if (_srCurrentMode === 'company' && _srCurrentFilter) pool = pool.filter(q => q.company === _srCurrentFilter);
+  const quotes = pool.filter(q => q.subcategory === subcatName && q.quote)
     .sort((a, b) => (a.significance === 'High' ? 0 : 1) - (b.significance === 'High' ? 0 : 1))
     .slice(0, 20)
-    .map(q => ({{
-      company: q.company, quarter: q.quarter, quote: q.quote.substring(0, 500),
-      summary: q.summary || '', role: q.role || '', significance: q.significance || 'Medium'
-    }}));
+    .map(q => ({{ company: q.company, quarter: q.quarter, quote: q.quote.substring(0, 500), summary: q.summary || '', role: q.role || '', significance: q.significance || 'Medium' }}));
   showUseCaseQuotes(subcatName, quotes);
 }}
 
