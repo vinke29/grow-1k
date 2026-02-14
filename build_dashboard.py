@@ -3287,6 +3287,11 @@ function startLoading() {{
   showStep();
 }}
 
+// Presentation state (declared early so launchDashboard can call renderPresSlide)
+let _presSlide = 0;
+let _presChart = null;
+const PRES_TOTAL_SLIDES = 5;
+
 function launchDashboard(name, ticker) {{
   // Save for session
   sessionStorage.setItem('onboarded', JSON.stringify({{ name, ticker }}));
@@ -3333,10 +3338,6 @@ function launchDashboard(name, ticker) {{
 // ============================================================
 // PRESENTATION MODE
 // ============================================================
-let _presSlide = 0;
-let _presChart = null;
-const PRES_TOTAL_SLIDES = 5;
-
 function _presPopulateCompanyList() {{
   const dl = document.getElementById('presCompanyList');
   if (!dl) return;
