@@ -2770,11 +2770,13 @@ function renderStrategicReport(mode, filterValue) {{
     const interpText = execPct > 65
       ? `AI has become table stakes in ${{mode === 'sector' ? esc(scopeLabel) : ''}} investor messaging. Executives are signaling strategic intent.`
       : `Analysts are driving much of the AI conversation \u2014 ${{mode === 'sector' ? esc(scopeLabel) + ' executives' : 'executives'}} are reactive, not proactive.`;
+    const sectionLabel = mode === 'sector' ? esc(scopeLabel) + ' Sector' : 'Market Overview';
+    const sectionTitle = mode === 'sector'
+      ? `${{esc(scopeLabel)}}: ${{uniqueCompanies.length}} companies are signaling AI ambition \u2014 but ${{substancePct <= 15 ? 'almost none are' : 'few are'}} delivering measurable outcomes`
+      : 'AI rhetoric is exploding across the S&P 500, but substance remains scarce';
     html += `<div class="sr-section">
-      <div class="sr-section-label">${{mode === 'sector' ? esc(scopeLabel) + ' Sector' : 'Market Overview'}}</div>
-      <div class="sr-section-title">${{mode === 'sector'
-        ? esc(scopeLabel) + ': ${{uniqueCompanies.length}} companies are signaling AI ambition \u2014 but ${{substancePct <= 15 ? "almost none are" : "few are"}} delivering measurable outcomes'
-        : 'AI rhetoric is exploding across the S&P 500, but substance remains scarce'}}</div>
+      <div class="sr-section-label">${{sectionLabel}}</div>
+      <div class="sr-section-title">${{sectionTitle}}</div>
       <div class="sr-big-stats">
         <div class="sr-big-stat"><span class="num">${{growthX}}x</span><span class="lbl">Mention Growth</span></div>
         <div class="sr-big-stat"><span class="num">${{execPct}}%</span><span class="lbl">Exec-Driven</span></div>
