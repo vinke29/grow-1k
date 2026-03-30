@@ -2713,9 +2713,9 @@ function _presGetScope() {
     }
   });
   const topUseCases = Object.entries(useCaseCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([name, count]) => ({ name, count, concrete: useCaseHigh[name] || 0, example: useCaseExamples[name] }));
+    .map(([name, count]) => ({ name, count, concrete: useCaseHigh[name] || 0, example: useCaseExamples[name] }))
+    .sort((a, b) => b.count - a.count || b.concrete - a.concrete || a.name.localeCompare(b.name))
+    .slice(0, 5);
 
   // Per-quarter exec vs analyst unique-company counts
   const execCompanyByQ = {}, analystCompanyByQ = {};
@@ -3264,7 +3264,7 @@ function renderPresSlide() {
       const sigOrder = {'High': 3, 'Medium': 2, 'Low': 1};
       ucQuotesMap[u.name] = s.nonVague
         .filter(q => q.subcategory === u.name)
-        .sort((a, b) => (sigOrder[b.significance] || 0) - (sigOrder[a.significance] || 0))
+        .sort((a, b) => b.quarter.localeCompare(a.quarter) || (sigOrder[b.significance] || 0) - (sigOrder[a.significance] || 0))
         .slice(0, 5)
         .map(q => {
           const sig = q.significance;
