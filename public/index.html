@@ -2557,6 +2557,8 @@ _restorePresSettings();
 let _presSlide = 0;
 let _presChart = null;
 const PRES_TOTAL_SLIDES = 6;
+let _slide1ViewMode = 'mentions';   // 'mentions' | 'companies'  (Slide 2)
+let _slide3ViewMode = 'mentions';   // 'mentions' | 'companies'  (Slide 4)
 
 function launchDashboard(name, ticker) {
   // Save for session
@@ -2714,7 +2716,35 @@ function _presGetScope() {
     .slice(0, 5)
     .map(([name, count]) => ({ name, count, concrete: useCaseHigh[name] || 0, example: useCaseExamples[name] }));
 
-  return { mode, label, quotes, summary, companies, nonVague, byQ, qLabels, qData, firstVal, lastVal, total, growthX, execPct, analystPct, exec, analyst, execQData, analystQData, firstExecPct, lastExecPct, vague, highSig, substancePct, vagueQData, substQData, concreteQData, vagueExamples, concreteExamples, topUseCases, classifiedCount };
+  // Per-quarter unique-company counts (for toggle views)
+  const companyByQ = {};
+  quotes.forEach(q => {
+    if (!companyByQ[q.quarter]) companyByQ[q.quarter] = new Set();
+    companyByQ[q.quarter].add(q.company);
+  });
+  const companyQData = QUARTERS.map(q => companyByQ[q] ? companyByQ[q].size : 0);
+
+  // Classify each company per quarter by best quality (mutually exclusive for Slide 4)
+  const _cqByQ = {};
+  QUARTERS.forEach(q => { _cqByQ[q] = { concrete: new Set(), subst: new Set(), vague: new Set() }; });
+  const _cqKey = {};
+  quotes.forEach(q => {
+    const k = q.company + '|' + q.quarter;
+    if (!_cqKey[k]) _cqKey[k] = { company: q.company, quarter: q.quarter, hasConcrete: false, hasSubst: false, hasVague: false };
+    if (q.categories === 'Vague/Buzzword') _cqKey[k].hasVague = true;
+    else if (q.significance === 'High') _cqKey[k].hasConcrete = true;
+    else _cqKey[k].hasSubst = true;
+  });
+  Object.values(_cqKey).forEach(cd => {
+    if (cd.hasConcrete) _cqByQ[cd.quarter].concrete.add(cd.company);
+    else if (cd.hasSubst) _cqByQ[cd.quarter].subst.add(cd.company);
+    else _cqByQ[cd.quarter].vague.add(cd.company);
+  });
+  const concreteCompanyQData = QUARTERS.map(q => _cqByQ[q].concrete.size);
+  const substCompanyQData = QUARTERS.map(q => _cqByQ[q].subst.size);
+  const vagueCompanyQData = QUARTERS.map(q => _cqByQ[q].vague.size);
+
+  return { mode, label, quotes, summary, companies, nonVague, byQ, qLabels, qData, firstVal, lastVal, total, growthX, execPct, analystPct, exec, analyst, execQData, analystQData, firstExecPct, lastExecPct, vague, highSig, substancePct, vagueQData, substQData, concreteQData, vagueExamples, concreteExamples, topUseCases, classifiedCount, companyQData, concreteCompanyQData, substCompanyQData, vagueCompanyQData };
 }
 
 function renderPresSlide() {
@@ -2833,6 +2863,12 @@ function renderPresSlide() {
       <div style="margin:16px 0 0; padding:12px 16px; border-left:3px solid var(--accent); font-size:0.9rem; color:var(--text); font-style:italic; background:var(--bg-card); border-radius:0 8px 8px 0;">
         ${framing}
       </div>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:6px;">
+        <div style="display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; font-size:0.78rem;">
+          <button onclick="_slide1ViewMode='mentions'; renderPresSlide();" style="padding:4px 12px; border:none; cursor:pointer; background:${_slide1ViewMode==='mentions' ? 'var(--accent)' : 'var(--bg-card)'}; color:${_slide1ViewMode==='mentions' ? '#fff' : 'var(--text-secondary)'}; font-size:0.78rem;">Mentions</button>
+          <button onclick="_slide1ViewMode='companies'; renderPresSlide();" style="padding:4px 12px; border:none; cursor:pointer; background:${_slide1ViewMode==='companies' ? 'var(--accent)' : 'var(--bg-card)'}; color:${_slide1ViewMode==='companies' ? '#fff' : 'var(--text-secondary)'}; font-size:0.78rem;">Companies</button>
+        </div>
+      </div>
       <div class="pres-chart-wrap"><canvas id="presChart1"></canvas></div>
       ${_presBrandingWatermark()}
     </div>`;
@@ -2841,13 +2877,14 @@ function renderPresSlide() {
     const ctx = document.getElementById('presChart1');
     if (ctx) {
       const tc = getThemeColors();
+      const isCompanies = _slide1ViewMode === 'companies';
       _presChart = new Chart(ctx, {
         type: 'bar',
         data: {
           labels: s.qLabels,
           datasets: [{
-            label: 'AI Mentions per Quarter',
-            data: s.qData,
+            label: isCompanies ? 'Companies Mentioning AI' : 'AI Mentions per Quarter',
+            data: isCompanies ? s.companyQData : s.qData,
             backgroundColor: s.qLabels.map((_, i) => i === s.qLabels.length - 1 ? violet : violetAlpha),
             borderColor: violet,
             borderWidth: 1,
@@ -2859,12 +2896,18 @@ function renderPresSlide() {
           maintainAspectRatio: false,
           plugins: {
             legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => isCompanies ? `${ctx.parsed.y} companies` : `${ctx.parsed.y} mentions`,
+              }
+            }
           },
           scales: {
             y: {
               beginAtZero: true,
               grid: { color: tc.grid },
               ticks: { color: tc.text },
+              title: { display: true, text: isCompanies ? 'Unique Companies' : 'AI Mentions', color: tc.text, font: { size: 11 } },
             },
             x: {
               grid: { display: false },
@@ -3051,6 +3094,12 @@ function renderPresSlide() {
       <div style="margin:16px 0 0; padding:12px 16px; border-left:3px solid var(--accent); font-size:0.9rem; color:var(--text); font-style:italic; background:var(--bg-card); border-radius:0 8px 8px 0;">
         ${punchline}
       </div>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:6px;">
+        <div style="display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; font-size:0.78rem;">
+          <button onclick="_slide3ViewMode='mentions'; renderPresSlide();" style="padding:4px 12px; border:none; cursor:pointer; background:${_slide3ViewMode==='mentions' ? 'var(--accent)' : 'var(--bg-card)'}; color:${_slide3ViewMode==='mentions' ? '#fff' : 'var(--text-secondary)'}; font-size:0.78rem;">Mentions</button>
+          <button onclick="_slide3ViewMode='companies'; renderPresSlide();" style="padding:4px 12px; border:none; cursor:pointer; background:${_slide3ViewMode==='companies' ? 'var(--accent)' : 'var(--bg-card)'}; color:${_slide3ViewMode==='companies' ? '#fff' : 'var(--text-secondary)'}; font-size:0.78rem;">Companies</button>
+        </div>
+      </div>
       <div class="pres-chart-wrap"><canvas id="presChart3"></canvas></div>
       ${_presBrandingWatermark()}
     </div>`;
@@ -3058,6 +3107,7 @@ function renderPresSlide() {
     const ctx = document.getElementById('presChart3');
     if (ctx) {
       const tc = getThemeColors();
+      const isCompanies = _slide3ViewMode === 'companies';
       _presChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -3065,14 +3115,14 @@ function renderPresSlide() {
           datasets: [
             {
               label: 'Concrete Evidence',
-              data: s.concreteQData,
+              data: isCompanies ? s.concreteCompanyQData : s.concreteQData,
               backgroundColor: '#48bb78',
               borderRadius: 4,
               borderSkipped: false,
             },
             {
               label: 'Directional (no evidence)',
-              data: s.substQData,
+              data: isCompanies ? s.substCompanyQData : s.substQData,
               backgroundColor: violetAlpha,
               borderColor: violet,
               borderWidth: 1,
@@ -3081,7 +3131,7 @@ function renderPresSlide() {
             },
             {
               label: 'Buzzword-Only',
-              data: s.vagueQData,
+              data: isCompanies ? s.vagueCompanyQData : s.vagueQData,
               backgroundColor: 'rgba(160,160,160,0.15)',
               borderColor: 'rgba(160,160,160,0.4)',
               borderWidth: 1,
@@ -3098,6 +3148,11 @@ function renderPresSlide() {
               labels: { color: tc.text, usePointStyle: true, pointStyle: 'rectRounded', padding: 16 },
               position: 'top',
             },
+            tooltip: {
+              callbacks: {
+                label: ctx => isCompanies ? `${ctx.dataset.label}: ${ctx.parsed.y} companies` : `${ctx.dataset.label}: ${ctx.parsed.y} mentions`,
+              }
+            }
           },
           scales: {
             y: {
@@ -3105,6 +3160,7 @@ function renderPresSlide() {
               stacked: true,
               grid: { color: tc.grid },
               ticks: { color: tc.text },
+              title: { display: true, text: isCompanies ? 'Unique Companies (by best quality)' : 'AI Mentions', color: tc.text, font: { size: 11 } },
             },
             x: {
               stacked: true,
