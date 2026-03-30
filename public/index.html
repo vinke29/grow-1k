@@ -2558,6 +2558,8 @@ let _presSlide = 0;
 let _presChart = null;
 const PRES_TOTAL_SLIDES = 6;
 let _slide1ViewMode = 'mentions';   // 'mentions' | 'companies'  (Slide 2)
+let _presBarSel1 = null;   // selected quarter key for Slide 2 drilldown
+let _presBarSel3 = null;   // selected quarter|dataset key for Slide 4 drilldown
 let _slide2ViewMode = 'mentions';   // 'mentions' | 'companies'  (Slide 3)
 let _slide3ViewMode = 'mentions';   // 'mentions' | 'companies'  (Slide 4)
 
@@ -2760,7 +2762,38 @@ function _presGetScope() {
   const substCompanyQData = QUARTERS.map(q => _cqByQ[q].subst.size);
   const vagueCompanyQData = QUARTERS.map(q => _cqByQ[q].vague.size);
 
-  return { mode, label, quotes, summary, companies, nonVague, byQ, qLabels, qData, firstVal, lastVal, total, growthX, execPct, analystPct, exec, analyst, execQData, analystQData, firstExecPct, lastExecPct, vague, highSig, substancePct, vagueQData, substQData, concreteQData, vagueExamples, concreteExamples, topUseCases, classifiedCount, companyQData, concreteCompanyQData, substCompanyQData, vagueCompanyQData, execCompanyQData, analystCompanyQData };
+  // Drilldown: per-quarter company details for Slide 2
+  const quarterCompanyDetails = {};
+  QUARTERS.forEach(q => {
+    const coMap = {};
+    quotes.filter(qu => qu.quarter === q).forEach(qu => {
+      if (!coMap[qu.company]) coMap[qu.company] = { company: qu.company, count: 0, bestSig: 0, quote: '' };
+      coMap[qu.company].count++;
+      const sig = qu.significance === 'High' ? 3 : qu.significance === 'Medium' ? 2 : 1;
+      if (sig > coMap[qu.company].bestSig) {
+        coMap[qu.company].bestSig = sig;
+        coMap[qu.company].quote = qu.summary || (qu.quote || '').substring(0, 150);
+      }
+    });
+    quarterCompanyDetails[q] = Object.values(coMap).sort((a, b) => b.count - a.count);
+  });
+
+  // Drilldown: per-quarter bucket company details for Slide 4
+  const bucketCompanyDetails = {};
+  QUARTERS.forEach(q => {
+    const getBucketList = coSet => [...coSet].map(co => {
+      const best = quotes.filter(qu => qu.company === co && qu.quarter === q)
+        .sort((a, b) => { const so = {High:3,Medium:2,Low:1}; return (so[b.significance]||0)-(so[a.significance]||0); })[0];
+      return { company: co, name: (typeof TICKER_NAMES!=='undefined' && TICKER_NAMES[co]) || co, quote: best ? (best.summary||(best.quote||'').substring(0,150)) : '' };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+    bucketCompanyDetails[q] = {
+      concrete: getBucketList(_cqByQ[q].concrete),
+      subst:    getBucketList(_cqByQ[q].subst),
+      vague:    getBucketList(_cqByQ[q].vague),
+    };
+  });
+
+  return { mode, label, quotes, summary, companies, nonVague, byQ, qLabels, qData, firstVal, lastVal, total, growthX, execPct, analystPct, exec, analyst, execQData, analystQData, firstExecPct, lastExecPct, vague, highSig, substancePct, vagueQData, substQData, concreteQData, vagueExamples, concreteExamples, topUseCases, classifiedCount, companyQData, concreteCompanyQData, substCompanyQData, vagueCompanyQData, execCompanyQData, analystCompanyQData, quarterCompanyDetails, bucketCompanyDetails };
 }
 
 function renderPresSlide() {
@@ -2885,7 +2918,8 @@ function renderPresSlide() {
           <button onclick="_slide1ViewMode='companies'; renderPresSlide();" style="padding:4px 12px; border:none; cursor:pointer; background:${_slide1ViewMode==='companies' ? 'var(--accent)' : 'var(--bg-card)'}; color:${_slide1ViewMode==='companies' ? '#fff' : 'var(--text-secondary)'}; font-size:0.78rem;">Companies</button>
         </div>
       </div>
-      <div class="pres-chart-wrap"><canvas id="presChart1"></canvas></div>
+      <div class="pres-chart-wrap" style="cursor:pointer;" title="Click a bar to see companies"><canvas id="presChart1"></canvas></div>
+      <div id="presBarDetail1" style="display:none; margin-top:12px; padding:12px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; max-height:220px; overflow-y:auto;"></div>
       ${_presBrandingWatermark()}
     </div>`;
 
@@ -2918,6 +2952,17 @@ function renderPresSlide() {
               }
             }
           },
+          onClick: isCompanies ? (evt, els) => {
+            if (!els.length) return;
+            const quarter = s.qLabels[els[0].index];
+            const panel = document.getElementById('presBarDetail1');
+            if (_presBarSel1 === quarter) { _presBarSel1 = null; panel.style.display = 'none'; panel.innerHTML = ''; return; }
+            _presBarSel1 = quarter;
+            const cos = s.quarterCompanyDetails[quarter] || [];
+            if (!cos.length) { panel.style.display = 'none'; return; }
+            panel.style.display = 'block';
+            panel.innerHTML = `<div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">${quarter} — ${cos.length} companies</div><div style="display:flex; flex-wrap:wrap; gap:5px;">${cos.map(c => `<span style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:3px 9px; font-size:0.75rem; color:var(--text);" title="${(typeof TICKER_NAMES!=='undefined'&&TICKER_NAMES[c.company])||c.company}">${c.company}${c.count>1?' <span style=\'color:var(--accent);font-weight:600;\'>('+c.count+')</span>':''}</span>`).join('')}</div>`;
+          } : undefined,
           scales: {
             y: {
               beginAtZero: true,
@@ -3129,7 +3174,8 @@ function renderPresSlide() {
           <button onclick="_slide3ViewMode='companies'; renderPresSlide();" style="padding:4px 12px; border:none; cursor:pointer; background:${_slide3ViewMode==='companies' ? 'var(--accent)' : 'var(--bg-card)'}; color:${_slide3ViewMode==='companies' ? '#fff' : 'var(--text-secondary)'}; font-size:0.78rem;">Companies</button>
         </div>
       </div>
-      <div class="pres-chart-wrap"><canvas id="presChart3"></canvas></div>
+      <div class="pres-chart-wrap" style="cursor:pointer;" title="Click a bar segment to see companies"><canvas id="presChart3"></canvas></div>
+      <div id="presBarDetail3" style="display:none; margin-top:12px; padding:12px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; max-height:280px; overflow-y:auto;"></div>
       ${_presBrandingWatermark()}
     </div>`;
 
@@ -3183,6 +3229,23 @@ function renderPresSlide() {
               }
             }
           },
+          onClick: isCompanies ? (evt, els) => {
+            if (!els.length) return;
+            const qi = els[0].index;
+            const di = els[0].datasetIndex;
+            const quarter = s.qLabels[qi];
+            const selKey = quarter + '|' + di;
+            const bucketKeys = ['concrete', 'subst', 'vague'];
+            const bucketLabels = ['Concrete Evidence', 'Directional', 'Buzzword-Only'];
+            const bucketColors = ['#48bb78', 'var(--accent)', '#aaa'];
+            const panel = document.getElementById('presBarDetail3');
+            if (_presBarSel3 === selKey) { _presBarSel3 = null; panel.style.display = 'none'; panel.innerHTML = ''; return; }
+            _presBarSel3 = selKey;
+            const cos = (s.bucketCompanyDetails[quarter] || {})[bucketKeys[di]] || [];
+            if (!cos.length) { panel.style.display = 'none'; return; }
+            panel.style.display = 'block';
+            panel.innerHTML = `<div style="font-size:0.75rem; font-weight:600; color:${bucketColors[di]}; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">${bucketLabels[di]} · ${quarter} · ${cos.length} companies</div><div style="display:flex; flex-direction:column; gap:10px;">${cos.map(c=>`<div><div style="font-size:0.82rem; font-weight:600; color:var(--text);">${c.company} <span style="font-weight:400;color:var(--text-secondary);">${c.name}</span></div>${c.quote?`<div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.4;margin-top:2px;">${c.quote.substring(0,150)}${c.quote.length>150?'...':''}</div>`:''}</div>`).join('')}</div>`;
+          } : undefined,
           scales: {
             y: {
               beginAtZero: true,
