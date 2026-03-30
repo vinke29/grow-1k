@@ -893,6 +893,9 @@
   <div id="tab-data" class="tab-content">
     <div class="filters">
       <button onclick="downloadCSV()" class="theme-toggle" style="margin-top:0">Download CSV</button>
+      <select id="filterTicker" onchange="filterTable()">
+        <option value="">All Tickers</option>
+      </select>
       <select id="filterSector" onchange="filterTable()">
         <option value="">All Sectors</option>
         <option value="Asset Management &amp; Capital Markets">Asset Management &amp; Capital Markets</option> <option value="Automobile Manufacturers">Automobile Manufacturers</option> <option value="Automotive Parts &amp; Equipment">Automotive Parts &amp; Equipment</option> <option value="Banking">Banking</option> <option value="Energy">Energy</option> <option value="Energy &amp; Utilities">Energy &amp; Utilities</option> <option value="Healthcare">Healthcare</option> <option value="Heavy Electrical Equipment">Heavy Electrical Equipment</option> <option value="Homebuilding">Homebuilding</option> <option value="Hotel &amp; Resort REITs">Hotel &amp; Resort REITs</option> <option value="Industrials">Industrials</option> <option value="Insurance">Insurance</option> <option value="Interactive Home Entertainment">Interactive Home Entertainment</option> <option value="Materials">Materials</option> <option value="Media &amp; Telecom">Media &amp; Telecom</option> <option value="Multi-Family Residential REITs">Multi-Family Residential REITs</option> <option value="Other Specialized REITs">Other Specialized REITs</option> <option value="Other Specialty Retail">Other Specialty Retail</option> <option value="Payments &amp; Lending">Payments &amp; Lending</option> <option value="Rail Transportation">Rail Transportation</option> <option value="Real Estate">Real Estate</option> <option value="Retail &amp; Consumer">Retail &amp; Consumer</option> <option value="Single-Family Residential REITs">Single-Family Residential REITs</option> <option value="Specialized Consumer Services">Specialized Consumer Services</option> <option value="Technology">Technology</option> <option value="Technology Distributors">Technology Distributors</option>
@@ -1436,21 +1439,35 @@ let sortCol = 4;
 let sortAsc = false;
 let tableRendered = false;
 
+function populateTickerFilter(preselect) {
+  const tickers = [...new Set(RAW_DATA.map(r => r.company))].sort();
+  const sel = document.getElementById('filterTicker');
+  sel.innerHTML = '<option value="">All Tickers</option>' +
+    tickers.map(t => {
+      const label = (typeof TICKER_NAMES !== 'undefined' && TICKER_NAMES[t]) ? t + ' — ' + TICKER_NAMES[t] : t;
+      return `<option value="${t}"${preselect === t ? ' selected' : ''}>${label}</option>`;
+    }).join('');
+}
+
 function renderTable() {
   if (tableRendered) return;
   tableRendered = true;
+  // Populate ticker filter if not already done (e.g. direct tab access)
+  if (document.getElementById('filterTicker').options.length <= 1) {
+    populateTickerFilter('');
+  }
   filterTable();
 }
 
 function filterTable() {
-  const companyFilter = document.getElementById('companySearch').value.toUpperCase().trim();
+  const tickerFilter = document.getElementById('filterTicker').value;
   const sectorFilter = document.getElementById('filterSector').value;
   const quarterFilter = document.getElementById('filterQuarter').value;
   const categoryFilter = document.getElementById('filterCategory').value;
   const subcatFilter = document.getElementById('filterSubcategory').value;
 
   let filtered = RAW_DATA.filter(r => {
-    if (companyFilter && !r.company.toUpperCase().includes(companyFilter)) return false;
+    if (tickerFilter && r.company !== tickerFilter) return false;
     if (sectorFilter && r.sector !== sectorFilter) return false;
     if (quarterFilter && r.quarter !== quarterFilter) return false;
     if (categoryFilter && r.category !== categoryFilter) return false;
@@ -2553,11 +2570,8 @@ function launchDashboard(name, ticker) {
   // Show dashboard
   document.getElementById('mainDashboard').classList.add('visible');
 
-  // Auto-filter to their ticker
-  if (ticker && ALL_SUMMARY.some(r => r.company === ticker)) {
-    document.getElementById('companySearch').value = ticker;
-    onCompanyFilter();
-  }
+  // Pre-select their ticker in the Raw Data tab filter (but don't lock other tabs)
+  populateTickerFilter(ticker && ALL_SUMMARY.some(r => r.company === ticker) ? ticker : '');
 
   // Init presentation tab (default)
   _presPopulateCompanyList();
@@ -2575,10 +2589,7 @@ function launchDashboard(name, ticker) {
       const subtitle = document.getElementById('dashSubtitle');
       subtitle.innerHTML = `Specially made for <span class="personalized">${data.name}</span> &mdash; Analysis of 2,678 transcripts across 493 companies (2023-2025)`;
     }
-    if (data.ticker && ALL_SUMMARY.some(r => r.company === data.ticker)) {
-      document.getElementById('companySearch').value = data.ticker;
-      onCompanyFilter();
-    }
+    populateTickerFilter(data.ticker && ALL_SUMMARY.some(r => r.company === data.ticker) ? data.ticker : '');
     _presPopulateCompanyList();
     renderPresSlide();
     return;
